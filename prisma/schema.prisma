@@ -1,0 +1,270 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:postgres@postgres/app" // hardcoded because it's an internal docker connection
+}
+
+enum ClassStatus {
+  active
+  archived
+}
+
+model Teacher {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   @unique
+  name        String
+  password    String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  classes               Class[]
+  teacherKnowledgeAreas TeacherKnowledgeArea[]
+  teachingMaterials     TeachingMaterial[]
+
+  @@map("teachers")
+}
+
+model Parent {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   @unique
+  name        String
+  password    String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  children Student[]
+
+  @@map("parents")
+}
+
+model Student {
+  id         Int     @id @default(autoincrement())
+  name       String
+  studentId  String?
+  email      String?
+  schoolName String?
+  grade      String?
+  className  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  parentId    Int?
+  parent      Parent? @relation(fields: [parentId], references: [id])
+  classId     Int?
+  class       Class?  @relation(fields: [classId], references: [id])
+  assignments Assignment[]
+  exams       Exam[]
+  mistakes    Mistake[]
+  examMistakes ExamMistake[]
+  studentKnowledgeAreas StudentKnowledgeArea[]
+
+  @@map("students")
+}
+
+model Class {
+  id                          Int       @id @default(autoincrement())
+  name                        String
+  description                 String?
+  initialStudentCount         Int?
+  invitationCode              String    @unique
+  invitationCodeExpiresAt     DateTime
+  lastInvitationCodeGeneratedAt DateTime?
+  status                      ClassStatus @default(active)
+  finalStudentReportUrl       String?
+  finalClassReportUrl         String?
+  archivedAt                  DateTime?
+  createdAt                   DateTime  @default(now())
+
+  // Self-referential relationship for class promotion
+  promotedToClassId           Int? @unique
+  promotedToClass             Class? @relation("ClassPromotion", fields: [promotedToClassId], references: [id])
+  promotedFromClass           Class? @relation("ClassPromotion")
+
+  // Relations
+  teacherId   Int
+  teacher     Teacher @relation(fields: [teacherId], references: [id])
+  students    Student[]
+  assignments Assignment[]
+  exams       Exam[]
+
+  @@map("classes")
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  title       String
+  imageUrl    String
+  uploadedBy  String   // 'teacher' or 'parent'
+  createdAt   DateTime @default(now())
+
+  // Relations
+  studentId Int?
+  student   Student? @relation(fields: [studentId], references: [id])
+  classId   Int?
+  class     Class? @relation(fields: [classId], references: [id])
+  analysis  AssignmentAnalysis?
+
+  @@map("assignments")
+}
+
+model AssignmentAnalysis {
+  id          Int      @id @default(autoincrement())
+  grade       String?
+  feedback    String
+  strengths   String[] // JSON array of strings
+  improvements String[] // JSON array of strings
+  modelUsed   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  assignmentId Int        @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  mistakes     Mistake[]
+
+  @@map("assignment_analyses")
+}
+
+model Exam {
+  id          Int      @id @default(autoincrement())
+  title       String
+  imageUrl    String
+  uploadedBy  String   // 'teacher' or 'parent'
+  createdAt   DateTime @default(now())
+
+  // Relations
+  studentId Int?
+  student   Student? @relation(fields: [studentId], references: [id])
+  classId   Int?
+  class     Class? @relation(fields: [classId], references: [id])
+  analysis  ExamAnalysis?
+
+  @@map("exams")
+}
+
+model ExamAnalysis {
+  id          Int      @id @default(autoincrement())
+  grade       String?
+  feedback    String
+  strengths   String[] // JSON array of strings
+  improvements String[] // JSON array of strings
+  modelUsed   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  examId Int        @unique
+  exam   Exam @relation(fields: [examId], references: [id])
+  mistakes     ExamMistake[]
+
+  @@map("exam_analyses")
+}
+
+model Mistake {
+  id          Int    @id @default(autoincrement())
+  description String
+  originalQuestionText     String? // The text of the original question that was answered incorrectly
+  originalQuestionImageUrl String? // URL to image of the original question if applicable
+  studentAnswer           String? // The student's incorrect answer
+  correctAnswer          String? // The correct answer for reference
+  createdAt   DateTime @default(now())
+
+  // Relations
+  analysisId      Int?
+  analysis        AssignmentAnalysis? @relation(fields: [analysisId], references: [id])
+  studentId       Int?
+  student         Student? @relation(fields: [studentId], references: [id])
+  knowledgeAreaId Int?
+  knowledgeArea   KnowledgeArea? @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@map("mistakes")
+}
+
+model ExamMistake {
+  id          Int    @id @default(autoincrement())
+  description String
+  originalQuestionText     String? // The text of the original question that was answered incorrectly
+  originalQuestionImageUrl String? // URL to image of the original question if applicable
+  studentAnswer           String? // The student's incorrect answer
+  correctAnswer          String? // The correct answer for reference
+  createdAt   DateTime @default(now())
+
+  // Relations
+  analysisId      Int?
+  analysis        ExamAnalysis? @relation(fields: [analysisId], references: [id])
+  studentId       Int?
+  student         Student? @relation(fields: [studentId], references: [id])
+  knowledgeAreaId Int?
+  knowledgeArea   KnowledgeArea? @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@map("exam_mistakes")
+}
+
+model TeachingMaterial {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  contentType String   // 'document', 'image', 'text', 'video', etc.
+  fileUrl     String?  // URL to the uploaded file in OSS
+  textContent String?  // For direct text content
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacherId       Int
+  teacher         Teacher @relation(fields: [teacherId], references: [id])
+  knowledgeAreaId Int?
+  knowledgeArea   KnowledgeArea? @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@map("teaching_materials")
+}
+
+model KnowledgeArea {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  mistakes              Mistake[]
+  examMistakes          ExamMistake[]
+  teacherKnowledgeAreas TeacherKnowledgeArea[]
+  studentKnowledgeAreas StudentKnowledgeArea[]
+  teachingMaterials     TeachingMaterial[]
+
+  @@map("knowledge_areas")
+}
+
+model TeacherKnowledgeArea {
+  id        Int @id @default(autoincrement())
+  teacherId Int
+  knowledgeAreaId Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  teacher       Teacher       @relation(fields: [teacherId], references: [id])
+  knowledgeArea KnowledgeArea @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@unique([teacherId, knowledgeAreaId])
+  @@map("teacher_knowledge_areas")
+}
+
+model StudentKnowledgeArea {
+  id              Int @id @default(autoincrement())
+  studentId       Int
+  knowledgeAreaId Int
+  proficiencyLevel String? // 'beginner', 'intermediate', 'advanced'
+  createdAt       DateTime @default(now())
+
+  // Relations
+  student       Student       @relation(fields: [studentId], references: [id])
+  knowledgeArea KnowledgeArea @relation(fields: [knowledgeAreaId], references: [id])
+
+  @@unique([studentId, knowledgeAreaId])
+  @@map("student_knowledge_areas")
+}
