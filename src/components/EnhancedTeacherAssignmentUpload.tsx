@@ -60,8 +60,9 @@ interface AssignmentFile {
 }
 
 interface EnhancedTeacherAssignmentUploadProps {
+  isOpen: boolean;
   classId: number;
-  students: Array<{ id: number; name: string; }>;
+  students?: Array<{ id: number; name: string; }>;
   onSuccess?: (uploadedCount: number) => void;
   onClose?: () => void;
   maxFiles?: number;
@@ -116,11 +117,12 @@ const compressImage = async (file: File, maxWidth = 1920, maxHeight = 1080, qual
   });
 };
 
-export function EnhancedTeacherAssignmentUpload({ 
+export function EnhancedTeacherAssignmentUpload({
+  isOpen,
   classId,
-  students,
-  onSuccess, 
-  onClose, 
+  students = [],
+  onSuccess,
+  onClose,
   maxFiles = 10,
   allowMultiple = true,
   uploadType = "assignment"
@@ -435,7 +437,13 @@ export function EnhancedTeacherAssignmentUpload({
             uploadedImageUrl: fileUrl 
           });
           setCompletedCount(prev => prev + 1);
-          toast.warning(`${file.file.name} uploaded but needs manual student assignment (confidence: ${Math.round(recognition.recognition.confidence * 100)}%)`);
+          toast(`${file.file.name} uploaded but needs manual student assignment (confidence: ${Math.round(recognition.recognition.confidence * 100)}%)`, {
+            icon: '⚠️',
+            style: {
+              background: '#f59e0b',
+              color: 'white',
+            },
+          });
         }
       } else {
         throw new Error('AI recognition failed');
@@ -580,8 +588,11 @@ export function EnhancedTeacherAssignmentUpload({
     };
   }, []);
 
+  if (!isOpen) return null;
+
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-6xl mx-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-6xl mx-auto w-full max-h-[90vh] overflow-y-auto">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -589,8 +600,14 @@ export function EnhancedTeacherAssignmentUpload({
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Enhanced {uploadType === "exam" ? "Exam" : "Assignment"} Upload</h3>
               <p className="text-sm text-gray-600">
-                Batch upload with AI recognition, drag & drop, and smart student assignment
+                AI驱动的批量上传：自动识别学生信息、智能分配作业、支持拖拽上传
               </p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg">✨ AI识别学生姓名</span>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-lg">🚀 批量处理</span>
+                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg">📱 支持拍照</span>
+                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-lg">🗜️ 自动压缩</span>
+              </div>
             </div>
           </div>
           {onClose && (
@@ -735,11 +752,16 @@ export function EnhancedTeacherAssignmentUpload({
               
               <div>
                 <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  Drag files here or click to select
+                  拖拽文件到此处或点击选择
                 </h4>
-                <p className="text-gray-500 mb-4">
-                  Supports JPG, PNG, GIF, WebP with auto-compression and AI recognition
+                <p className="text-gray-500 mb-2">
+                  支持 JPG、PNG、GIF、WebP 格式，自动压缩和AI识别
                 </p>
+                <div className="text-xs text-gray-400 mb-4 space-y-1">
+                  <p>💡 提示：确保图片中学生姓名清晰可见，AI识别效果更佳</p>
+                  <p>📋 建议：一次上传同一次作业的所有学生图片</p>
+                  <p>🎯 特色：自动识别学生姓名并分配到对应学生档案</p>
+                </div>
                 
                 <div className="flex flex-wrap justify-center gap-2">
                   <button
@@ -781,6 +803,51 @@ export function EnhancedTeacherAssignmentUpload({
             className="hidden"
           />
         </div>
+
+        {/* Feature Introduction when no files */}
+        {files.length === 0 && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div className="text-center mb-4">
+              <Brain className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">智能作业上传系统</h4>
+              <p className="text-gray-600 text-sm">利用AI技术简化作业管理流程</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center mb-2">
+                  <Zap className="w-5 h-5 text-yellow-600 mr-2" />
+                  <span className="font-medium text-gray-900">智能识别</span>
+                </div>
+                <p className="text-gray-600">AI自动识别作业图片中的学生姓名，并匹配到对应学生档案</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center mb-2">
+                  <Users className="w-5 h-5 text-green-600 mr-2" />
+                  <span className="font-medium text-gray-900">自动分配</span>
+                </div>
+                <p className="text-gray-600">根据置信度自动将作业分配给正确的学生，节省手动操作时间</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center mb-2">
+                  <ImageIcon className="w-5 h-5 text-purple-600 mr-2" />
+                  <span className="font-medium text-gray-900">智能压缩</span>
+                </div>
+                <p className="text-gray-600">自动压缩图片文件，确保上传速度快且存储空间优化</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center mb-2">
+                  <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
+                  <span className="font-medium text-gray-900">批量处理</span>
+                </div>
+                <p className="text-gray-600">支持一次上传多个作业图片，系统自动排队处理</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* File List */}
         {files.length > 0 && (
@@ -953,7 +1020,25 @@ export function EnhancedTeacherAssignmentUpload({
         )}
 
         {/* Submit Button */}
-        <div className="flex space-x-3">
+        <div className="space-y-3">
+          {files.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-1">上传前检查清单：</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>确保图片中学生姓名清晰可见</li>
+                    <li>检查作业标题和描述是否正确</li>
+                    <li>确认AI模型和置信度设置</li>
+                    <li>预计处理时间：约 {files.length * 15} 秒</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex space-x-3">
           <button
             type="submit"
             disabled={files.length === 0 || queueStatus === "running"}
@@ -996,6 +1081,7 @@ export function EnhancedTeacherAssignmentUpload({
               <Play className="w-4 h-4" />
             </button>
           )}
+          </div>
         </div>
       </form>
 
@@ -1042,6 +1128,7 @@ export function EnhancedTeacherAssignmentUpload({
       )}
 
       <canvas ref={canvasRef} className="hidden" />
+      </div>
     </div>
   );
 }

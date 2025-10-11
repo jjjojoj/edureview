@@ -10,6 +10,11 @@ import { refreshInvitationCode } from "./procedures/refreshInvitationCode";
 import { concludeClass } from "./procedures/concludeClass";
 import { promoteClass } from "./procedures/promoteClass";
 import { addStudentToClass } from "./procedures/addStudentToClass";
+import { deleteStudentFromClass } from "./procedures/deleteStudentFromClass";
+import { toggleSpecialAttention } from "./procedures/toggleSpecialAttention";
+import { getClassGroups } from "./procedures/getClassGroups";
+import { createStudentGroup } from "./procedures/createStudentGroup";
+import { assignStudentToGroup } from "./procedures/assignStudentToGroup";
 import { getClassStudents } from "./procedures/getClassStudents";
 import { getStudentProfileData } from "./procedures/getStudentProfileData";
 import { analyzeClassProgress } from "./procedures/analyzeClassProgress";
@@ -38,6 +43,10 @@ import { getTeachingMaterials } from "./procedures/getTeachingMaterials";
 import { deleteTeachingMaterial } from "./procedures/deleteTeachingMaterial";
 import { generateTargetedQuestionsProcedure } from "./procedures/generateTargetedQuestions";
 
+// Batch student management procedures
+import { analyzeBatchStudents } from "./procedures/analyzeBatchStudents";
+import { batchAddStudentsToClass } from "./procedures/batchAddStudentsToClass";
+
 export const appRouter = createTRPCRouter({
   // Health check
   healthCheck,
@@ -57,7 +66,16 @@ export const appRouter = createTRPCRouter({
   
   // Student management procedures
   addStudentToClass,
+  deleteStudentFromClass,
+  toggleSpecialAttention,
+  batchAddStudentsToClass,
   getClassStudents,
+
+  // Student group management procedures
+  getClassGroups,
+  createStudentGroup,
+  assignStudentToGroup,
+
   getStudentProfileData,
 
   // Class analysis procedures
@@ -92,6 +110,7 @@ export const appRouter = createTRPCRouter({
   // AI analysis and recognition procedures
   analyzeAssignment: analyzeAssignmentProcedure,
   recognizeStudentInfo: recognizeStudentInfoProcedure,
+  analyzeBatchStudents,
   getAvailableModels: getAvailableModelsProcedure,
   
   // AI-powered question generation

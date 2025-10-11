@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:postgres@postgres/app" // hardcoded because it's an internal docker connection
+  url      = env("DATABASE_URL")
 }
 
 enum ClassStatus {
@@ -52,6 +52,7 @@ model Student {
   schoolName String?
   grade      String?
   className  String?
+  specialAttention Boolean @default(false) // 特别关注标记
   createdAt  DateTime @default(now())
 
   // Relations
@@ -59,6 +60,8 @@ model Student {
   parent      Parent? @relation(fields: [parentId], references: [id])
   classId     Int?
   class       Class?  @relation(fields: [classId], references: [id])
+  groupId     Int? // 学生小组ID
+  group       StudentGroup? @relation(fields: [groupId], references: [id])
   assignments Assignment[]
   exams       Exam[]
   mistakes    Mistake[]
@@ -93,6 +96,7 @@ model Class {
   students    Student[]
   assignments Assignment[]
   exams       Exam[]
+  studentGroups StudentGroup[]
 
   @@map("classes")
 }
@@ -267,4 +271,19 @@ model StudentKnowledgeArea {
 
   @@unique([studentId, knowledgeAreaId])
   @@map("student_knowledge_areas")
+}
+
+model StudentGroup {
+  id          Int      @id @default(autoincrement())
+  name        String   // 小组名称，如 "第一组", "数学小组", "优秀小组"
+  description String?  // 小组描述
+  color       String   @default("blue") // 小组颜色标记
+  createdAt   DateTime @default(now())
+
+  // Relations
+  classId   Int
+  class     Class @relation(fields: [classId], references: [id])
+  students  Student[]
+
+  @@map("student_groups")
 }

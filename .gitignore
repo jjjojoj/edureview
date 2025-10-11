@@ -1,27 +1,37 @@
-node_modules
-package-lock.json
-yarn.lock
-.pnpm-store
+# 构建输出
+.output/
+dist/
+build/
 
+# 临时文件
+*.bak
+*.tmp
+*.log
+
+# 个人文件
+cluade.md
+progress*.md
+img.jpg
+
+# 敏感信息
+teachAI阿里云oss.txt
+
+# 未使用功能
+src/components/BatchAddStudentsModal.tsx
+
+# IDE和系统文件
+.claude/
 .DS_Store
-.cache
+.vscode/
+.idea/
+
+# 依赖
+node_modules/
+
+# 环境变量
 .env
-.vercel
-.output
-.vinxi
+.env.local
+.env.production
 
-/build/
-/api/
-/server/build
-/public/build
-.vinxi
-# Sentry Config File
-.env.sentry-build-plugin
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-
-src/generated
-
-app.config.timestamp_*.js
+# 锁文件（保留pnpm-lock.yaml）
+package-lock.json
