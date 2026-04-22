@@ -6,7 +6,7 @@ const envSchema = z.object({
   BASE_URL: z.string().optional(),
   BASE_URL_OTHER_PORT: z.string().optional(),
   ADMIN_PASSWORD: z.string(),
-  JWT_SECRET: z.string(),
+  JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   OPENROUTER_API_KEY: z.string(),
   OSS_ACCESS_KEY_ID: z.string(),
   OSS_ACCESS_KEY_SECRET: z.string(),

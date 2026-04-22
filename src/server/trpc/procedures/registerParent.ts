@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { baseProcedure } from "~/server/trpc/main";
 
 export const registerParent = baseProcedure
@@ -14,8 +15,9 @@ export const registerParent = baseProcedure
     }),
     invitationCode: z.string(),
   }))
-  .mutation(async ({ input }) => {
-    // Stub implementation - parent registration not yet implemented
-    throw new Error("Not implemented");
-    void input;
+  .mutation(async () => {
+    throw new TRPCError({
+      code: "NOT_IMPLEMENTED",
+      message: "家长注册功能暂未开放，敬请期待",
+    });
   });
