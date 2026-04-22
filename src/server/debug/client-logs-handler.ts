@@ -1,4 +1,5 @@
 import { defineEventHandler, toWebRequest } from "@tanstack/react-start/server";
+import { env } from "~/server/env";
 
 interface LogEntry {
   level: string;
@@ -7,14 +8,22 @@ interface LogEntry {
   url?: string;
   userAgent?: string;
   stacks?: string[];
-  extra?: any;
+  extra?: unknown;
 }
 
 interface ClientLogRequest {
   logs: LogEntry[];
 }
 
+// Only enable in development mode
+const isDev = env.NODE_ENV === "development";
+
 export default defineEventHandler(async (event) => {
+  // Disable in production
+  if (!isDev) {
+    return new Response("Not available", { status: 404 });
+  }
+
   const request = toWebRequest(event);
   if (!request || request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -27,8 +36,11 @@ export default defineEventHandler(async (event) => {
       return new Response("Invalid request body", { status: 400 });
     }
 
+    // Limit to prevent abuse - max 50 log entries per request
+    const logs = body.logs.slice(0, 50);
+
     // Forward each log to the server console
-    body.logs.forEach((log) => {
+    logs.forEach((log) => {
       const timestamp = new Date(log.timestamp).toLocaleTimeString();
       const location = log.url ? ` (${log.url})` : "";
       const prefix = `[browser] [${timestamp}]`;
@@ -49,15 +61,17 @@ export default defineEventHandler(async (event) => {
             .join("\n");
       }
 
-      // Add extra data if available
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (log.extra && log.extra.length > 0) {
-        message +=
-          "\n    Extra data: " +
-          JSON.stringify(log.extra, null, 2)
-            .split("\n")
-            .map((line, i) => (i === 0 ? line : `    ${line}`))
-            .join("\n");
+      // Add extra data if available (skip if too large)
+      if (log.extra) {
+        const extraStr = JSON.stringify(log.extra);
+        if (extraStr.length < 2048) {
+          message +=
+            "\n    Extra data: " +
+            extraStr
+              .split("\n")
+              .map((line, i) => (i === 0 ? line : `    ${line}`))
+              .join("\n");
+        }
       }
 
       // Log to server console based on level
