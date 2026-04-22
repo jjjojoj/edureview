@@ -15,10 +15,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useTRPC } from "~/trpc/react";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 const registerSchema = z.object({
-  phoneNumber: z.string().min(10, "请输入有效的手机号码"),
+  phoneNumber: z
+    .string()
+    .min(1, "请输入手机号码")
+    .regex(/^1\d{10}$/, "请输入有效的11位手机号码（以1开头）"),
   name: z.string().min(1, "姓名不能为空"),
   password: z.string()
     .min(8, "密码至少需要8个字符")
@@ -41,6 +45,7 @@ interface RegisterFormProps {
 export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const trpc = useTRPC();
+  const toast = useToast();
 
   const {
     register,
@@ -70,8 +75,8 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
       await registerMutation.mutateAsync(data);
       toast.success("账户创建成功！请登录。");
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || "注册失败");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 

@@ -15,7 +15,8 @@ import {
   Brain,
   FileSpreadsheet
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useToast } from '~/components/Toast';
+import { getErrorMessage } from '~/utils/trpcError';
 
 interface ReportGenerationModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const ReportGenerationModal: React.FC<ReportGenerationModalProps> = ({
 }) => {
   const { authToken } = useAuthStore();
   const trpc = useTRPC();
+  const toast = useToast();
   
   const [reportType, setReportType] = useState<'pdf' | 'excel'>('pdf');
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('30d');

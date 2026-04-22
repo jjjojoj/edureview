@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { useTRPC } from "~/trpc/react";
 import { useAuthStore } from "~/stores/authStore";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 const promoteClassSchema = z.object({
   newClassName: z.string().min(1, "新班级名称不能为空").max(100, "班级名称过长"),
@@ -44,6 +45,7 @@ export function ArchiveClassModal({ isOpen, onClose, classId, className, onSucce
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { authToken } = useAuthStore();
+  const toast = useToast();
 
   const {
     register,
@@ -101,8 +103,8 @@ export function ArchiveClassModal({ isOpen, onClose, classId, className, onSucce
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error: any) {
-      toast.error(error.message || "归档班级失败，请稍后重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
       setStep('choice');
     }
   };
@@ -136,8 +138,8 @@ export function ArchiveClassModal({ isOpen, onClose, classId, className, onSucce
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error: any) {
-      toast.error(error.message || "升级班级失败，请稍后重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
       setStep('choice');
     }
   };

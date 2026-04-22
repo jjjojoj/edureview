@@ -6,7 +6,8 @@ import { Eye, EyeOff, LogIn, Phone, Lock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useTRPC } from "~/trpc/react";
 import { useAuthStore } from "~/stores/authStore";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 const loginSchema = z.object({
   phoneNumber: z.string().min(10, "请输入有效的手机号码"),
@@ -25,6 +26,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, mode = "teacher" }: L
   const [showPassword, setShowPassword] = useState(false);
   const trpc = useTRPC();
   const setTeacherAuth = useAuthStore((state) => state.setTeacherAuth);
+  const toast = useToast();
   const isParent = mode === "parent";
 
   const {
@@ -53,8 +55,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister, mode = "teacher" }: L
       toast.success(`欢迎回来，${name}！`);
       onSuccess?.();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "登录失败";
-      toast.error(message);
+      toast.error(getErrorMessage(error));
     }
   };
 

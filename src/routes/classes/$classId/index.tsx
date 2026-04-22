@@ -32,7 +32,8 @@ import {
   Check,
   Copy,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 export const Route = createFileRoute("/classes/$classId/")({
   component: ClassDetail,
@@ -56,6 +57,7 @@ function ClassDetail() {
   const [selectedStudentForGroup, setSelectedStudentForGroup] = useState<any>(null);
 
   const trpc = useTRPC();
+  const toast = useToast();
   const refreshInvitationCodeMutation = useMutation(trpc.refreshInvitationCode.mutationOptions());
   const deleteStudentMutation = useMutation(trpc.deleteStudentFromClass.mutationOptions());
   const toggleSpecialAttentionMutation = useMutation(trpc.toggleSpecialAttention.mutationOptions());
@@ -106,8 +108,8 @@ function ClassDetail() {
       });
       toast.success("邀请码已刷新！");
       studentsQuery.refetch();
-    } catch (error: any) {
-      toast.error(error.message || "刷新邀请码失败");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -138,8 +140,8 @@ function ClassDetail() {
         setSelectedStudent(null);
         studentsQuery.refetch();
       }
-    } catch (error: any) {
-      toast.error(error.message || "删除学生失败，请重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -155,8 +157,8 @@ function ClassDetail() {
         toast.success(`已${actionText}特别关注: ${student.name}`);
         studentsQuery.refetch();
       }
-    } catch (error: any) {
-      toast.error(error.message || "切换特别关注失败，请重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -180,8 +182,8 @@ function ClassDetail() {
         studentsQuery.refetch();
         groupsQuery.refetch();
       }
-    } catch (error: any) {
-      toast.error(error.message || "分配学生到小组失败，请重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -202,8 +204,8 @@ function ClassDetail() {
       if (result.success) {
         groupsQuery.refetch();
       }
-    } catch (error: any) {
-      toast.error(error.message || "创建小组失败，请重试");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
       throw error;
     }
   };

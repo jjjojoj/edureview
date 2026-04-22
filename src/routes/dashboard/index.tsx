@@ -30,7 +30,7 @@ import {
   Zap,
   Brain
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
 
 export const Route = createFileRoute("/dashboard/")({
   component: Dashboard,
@@ -44,6 +44,7 @@ function Dashboard() {
   const [showTeachingMaterials, setShowTeachingMaterials] = useState(false);
   const [showQuestionGenerator, setShowQuestionGenerator] = useState(false);
   const trpc = useTRPC();
+  const toast = useToast();
 
   // Redirect parents away from teacher dashboard
   useEffect(() => {

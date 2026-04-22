@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { useTRPC } from "~/trpc/react";
 import { useAuthStore } from "~/stores/authStore";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 const createClassSchema = z.object({
   name: z.string().min(1, "班级名称不能为空").max(100, "班级名称过长"),
@@ -39,6 +40,7 @@ export function CreateClassModal({ isOpen, onClose }: CreateClassModalProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { authToken } = useAuthStore();
+  const toast = useToast();
 
   const {
     register,
@@ -74,19 +76,8 @@ export function CreateClassModal({ isOpen, onClose }: CreateClassModalProps) {
       
       toast.success(`班级"${result.class.name}"创建成功！`);
       reset();
-    } catch (error: any) {
-      // Check if it's a network/JSON parse error
-      if (error.message && error.message.includes("JSON.parse")) {
-        toast.error("服务器响应格式错误，请检查网络连接或联系管理员");
-      } else if (error.message && error.message.includes("fetch")) {
-        toast.error("网络连接错误，请检查网络连接");
-      } else if (error.data?.code === "UNAUTHORIZED") {
-        toast.error("认证失败，请重新登录");
-      } else if (error.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("服务器内部错误，请稍后重试");
-      } else {
-        toast.error(error.message || "创建班级失败，请稍后重试");
-      }
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     }
   };
 
