@@ -558,7 +558,11 @@ function ClassDetail() {
               <div>
                 <p className="text-sm font-semibold text-gray-600 mb-1">班级进度</p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {progressQuery.data?.aiAnalysis?.progressPercentage ?? 92}%
+                  {progressQuery.data?.aiAnalysis?.progressPercentage != null
+                    ? `${progressQuery.data.aiAnalysis.progressPercentage}%`
+                    : progressQuery.isLoading
+                      ? "分析中..."
+                      : "暂无数据"}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   {progressQuery.isLoading ? "分析中..." : "AI分析"}

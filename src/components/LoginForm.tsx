@@ -18,12 +18,14 @@ type LoginFormData = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   onSuccess?: () => void;
   onSwitchToRegister?: () => void;
+  mode?: "teacher" | "parent";
 }
 
-export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
+export function LoginForm({ onSuccess, onSwitchToRegister, mode = "teacher" }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const trpc = useTRPC();
   const setTeacherAuth = useAuthStore((state) => state.setTeacherAuth);
+  const isParent = mode === "parent";
 
   const {
     register,
@@ -33,17 +35,26 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     resolver: zodResolver(loginSchema),
   });
 
-  const loginMutation = useMutation(trpc.loginTeacher.mutationOptions());
+  const loginMutation = useMutation(
+    isParent
+      ? trpc.loginParent.mutationOptions()
+      : trpc.loginTeacher.mutationOptions()
+  );
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       const result = await loginMutation.mutateAsync(data);
-      setTeacherAuth(result.authToken, result.teacher);
-      toast.success(`欢迎回来，${result.teacher.name}！`);
+      if (isParent) {
+        setTeacherAuth(result.authToken, { id: result.parent.id, phoneNumber: result.parent.phoneNumber, name: result.parent.name });
+      } else {
+        setTeacherAuth(result.authToken, result.teacher);
+      }
+      const name = isParent ? result.parent.name : result.teacher.name;
+      toast.success(`欢迎回来，${name}！`);
       onSuccess?.();
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error(error.message || "登录失败");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "登录失败";
+      toast.error(message);
     }
   };
 
@@ -95,6 +106,8 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                  aria-pressed={showPassword}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
