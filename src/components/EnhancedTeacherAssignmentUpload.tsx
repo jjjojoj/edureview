@@ -16,7 +16,8 @@ import {
   Play,
   Brain,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 import { FileUploadZone } from "~/components/assignment/FileUploadZone";
 import { AssignmentPreview, type AssignmentFile } from "~/components/assignment/AssignmentPreview";
 import { AssignmentConfig } from "~/components/assignment/AssignmentConfig";
@@ -97,6 +98,7 @@ export function EnhancedTeacherAssignmentUpload({
   allowMultiple = true,
   uploadType = "assignment",
 }: EnhancedTeacherAssignmentUploadProps) {
+  const toast = useToast();
   const [files, setFiles] = useState<AssignmentFile[]>([]);
   const [queueStatus, setQueueStatus] = useState<UploadQueueStatus>("idle");
   const [dragActive, setDragActive] = useState(false);
@@ -484,7 +486,7 @@ export function EnhancedTeacherAssignmentUpload({
       } else {
         throw new Error("AI recognition failed");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const file = files[fileIndex];
 
       if (file && file.retryCount < 3) {
@@ -494,14 +496,14 @@ export function EnhancedTeacherAssignmentUpload({
               ? {
                   ...f,
                   status: "error",
-                  error: error.message || "Upload failed",
+                  error: getErrorMessage(error),
                   retryCount: f.retryCount + 1,
                 }
               : f
           )
         );
       } else {
-        updateFileStatus("error", 0, error.message || "Upload failed");
+        updateFileStatus("error", 0, getErrorMessage(error));
       }
     }
   };

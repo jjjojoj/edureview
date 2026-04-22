@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTRPC } from '~/trpc/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useToast } from '~/components/Toast';
 import { 
   FileText, 
   Image, 
@@ -43,6 +43,7 @@ interface TeachingMaterialLibraryProps {
 }
 
 export function TeachingMaterialLibrary({ onGenerateQuestions, onClose }: TeachingMaterialLibraryProps) {
+  const toast = useToast();
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { authToken } = useAuthStore();

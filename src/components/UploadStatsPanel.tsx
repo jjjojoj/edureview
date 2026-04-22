@@ -19,7 +19,8 @@ import {
   ChevronUp,
   RefreshCw,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useToast } from "~/components/Toast";
+import { getErrorMessage } from "~/utils/trpcError";
 
 interface UploadStatsPanelProps {
   userType?: "parent" | "teacher" | "admin";
@@ -43,6 +44,7 @@ export function UploadStatsPanel({
   className = "",
   showSystemStats = false,
 }: UploadStatsPanelProps) {
+  const toast = useToast();
   const [timeRange, setTimeRange] = useState<TimeRange>("week");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,8 +82,8 @@ export function UploadStatsPanel({
         showSystemStats ? systemStatsQuery.refetch() : Promise.resolve(),
       ]);
       toast.success("Statistics refreshed!");
-    } catch (error) {
-      toast.error("Failed to refresh statistics");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setRefreshing(false);
     }

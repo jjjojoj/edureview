@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Plus, Users, Group } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useToast } from '~/components/Toast';
 
 interface StudentGroup {
   id: number;
@@ -37,6 +37,7 @@ export function GroupSelectionModal({
   onAssignToGroup,
   onCreateGroup,
 }: GroupSelectionModalProps) {
+  const toast = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');

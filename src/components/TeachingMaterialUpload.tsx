@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTRPC } from '~/trpc/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useToast } from '~/components/Toast';
 import { Upload, FileText, Image, Video, Music, File, X, Plus } from 'lucide-react';
 import { useAuthStore } from '~/stores/authStore';
 
@@ -24,6 +24,7 @@ interface TeachingMaterialUploadProps {
 }
 
 export function TeachingMaterialUpload({ onSuccess, onClose }: TeachingMaterialUploadProps) {
+  const toast = useToast();
   const trpc = useTRPC();
   const { authToken } = useAuthStore();
   const [dragActive, setDragActive] = useState(false);

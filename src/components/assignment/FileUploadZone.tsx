@@ -9,8 +9,6 @@ import {
   ImageIcon,
   CheckCircle,
 } from "lucide-react";
-import toast from "react-hot-toast";
-
 interface FileUploadZoneProps {
   dragActive: boolean;
   onDrag: (e: React.DragEvent) => void;

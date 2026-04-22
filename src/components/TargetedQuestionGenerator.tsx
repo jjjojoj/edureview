@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTRPC } from '~/trpc/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useToast } from '~/components/Toast';
 import { 
   Brain, 
   User, 
@@ -55,6 +55,7 @@ interface TargetedQuestionGeneratorProps {
 }
 
 export function TargetedQuestionGenerator({ classId, studentId, onClose }: TargetedQuestionGeneratorProps) {
+  const toast = useToast();
   const trpc = useTRPC();
   const { authToken } = useAuthStore();
   const [generatedQuestions, setGeneratedQuestions] = useState<QuestionGenerationResult | null>(null);
