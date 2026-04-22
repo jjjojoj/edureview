@@ -1,24 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const uploadTeacherAssignment = baseProcedure
+export const uploadTeacherAssignment = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     studentId: z.number(),
     title: z.string().optional(),
     description: z.string().optional(),
     imageUrl: z.string(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify the student exists and the teacher has access to the class
       const student = await db.student.findUnique({
         where: { id: input.studentId },
@@ -38,7 +31,7 @@ export const uploadTeacherAssignment = baseProcedure
         });
       }
 
-      if (!student.class || student.class.teacher.id !== parsed.teacherId) {
+      if (!student.class || student.class.teacher.id !== ctx.auth.teacherId) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only upload assignments for students in your classes",

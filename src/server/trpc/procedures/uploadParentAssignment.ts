@@ -1,24 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const uploadParentAssignment = baseProcedure
+export const uploadParentAssignment = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     childId: z.number(),
     title: z.string().min(1),
     description: z.string().optional(),
     imageUrl: z.string(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify parent authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ parentId: z.number() }).parse(verified);
-
       // Verify the child belongs to this parent
       const child = await db.student.findUnique({
         where: { id: input.childId },
@@ -35,7 +28,7 @@ export const uploadParentAssignment = baseProcedure
         });
       }
 
-      if (child.parent?.id !== parsed.parentId) {
+      if (child.parent?.id !== ctx.auth.parentId) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only upload assignments for your own child",

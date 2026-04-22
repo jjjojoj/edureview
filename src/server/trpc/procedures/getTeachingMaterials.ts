@@ -1,25 +1,18 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const getTeachingMaterials = baseProcedure
+export const getTeachingMaterials = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     knowledgeAreaId: z.number().optional(),
     contentType: z.enum(["document", "image", "text", "video", "audio", "other"]).optional(),
   }))
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Build where clause based on filters
       const whereClause: any = {
-        teacherId: parsed.teacherId,
+        teacherId: ctx.auth.teacherId,
       };
 
       if (input.knowledgeAreaId) {

@@ -1,21 +1,14 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const toggleSpecialAttention = baseProcedure
+export const toggleSpecialAttention = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     studentId: z.number(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Get student details and verify teacher permission
       const student = await db.student.findFirst({
         where: {
@@ -34,7 +27,7 @@ export const toggleSpecialAttention = baseProcedure
       }
 
       // Verify that the class belongs to the teacher
-      if (!student.class || student.class.teacherId !== parsed.teacherId) {
+      if (!student.class || student.class.teacherId !== ctx.auth.teacherId) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You don't have permission to modify this student",

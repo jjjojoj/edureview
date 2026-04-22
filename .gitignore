@@ -39,3 +39,4 @@ node_modules/
 # 锁文件（保留pnpm-lock.yaml）
 package-lock.json
 app.config.timestamp*.js
+.vinxi/

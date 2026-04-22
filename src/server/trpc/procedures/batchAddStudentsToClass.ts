@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
 // Schema for individual student to be added
 const StudentToAddSchema = z.object({
@@ -11,23 +9,18 @@ const StudentToAddSchema = z.object({
   studentId: z.string().optional(),
 });
 
-export const batchAddStudentsToClass = baseProcedure
+export const batchAddStudentsToClass = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     classId: z.number(),
     students: z.array(StudentToAddSchema).min(1, "至少需要添加一个学生"),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify that the class belongs to the teacher
       const classExists = await db.class.findFirst({
         where: {
           id: input.classId,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
         },
       });
 

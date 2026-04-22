@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 import { analyzeAssignment, type AIModelKey } from "~/server/ai-service";
 
 const batchUploadItemSchema = z.object({
@@ -14,7 +12,6 @@ const batchUploadItemSchema = z.object({
 });
 
 const batchParentUploadSchema = z.object({
-  authToken: z.string(),
   childId: z.number(),
   assignments: z.array(batchUploadItemSchema).min(1).max(10), // Limit to 10 per batch
   analyzeImmediately: z.boolean().default(true),
@@ -22,21 +19,16 @@ const batchParentUploadSchema = z.object({
 });
 
 const batchTeacherUploadSchema = z.object({
-  authToken: z.string(),
   assignments: z.array(batchUploadItemSchema.extend({
     studentId: z.number(),
   })).min(1).max(10), // Limit to 10 per batch
   analyzeImmediately: z.boolean().default(false), // Teachers might want to review first
 });
 
-export const batchParentUploadProcedure = baseProcedure
+export const batchParentUploadProcedure = authedProcedure
   .input(batchParentUploadSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify parent authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ parentId: z.number() }).parse(verified);
-
       // Verify the child belongs to this parent
       const child = await db.student.findUnique({
         where: { id: input.childId },
@@ -53,7 +45,7 @@ export const batchParentUploadProcedure = baseProcedure
         });
       }
 
-      if (child.parent?.id !== parsed.parentId) {
+      if (child.parent?.id !== ctx.auth.parentId) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only upload assignments for your own child",
@@ -140,14 +132,10 @@ export const batchParentUploadProcedure = baseProcedure
     }
   });
 
-export const batchTeacherUploadProcedure = baseProcedure
+export const batchTeacherUploadProcedure = authedProcedure
   .input(batchTeacherUploadSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify all students exist and teacher has access to them
       const studentIds = input.assignments.map(a => a.studentId);
       const students = await db.student.findMany({
@@ -165,7 +153,7 @@ export const batchTeacherUploadProcedure = baseProcedure
 
       // Check authorization for all students
       for (const student of students) {
-        if (!student.class || student.class.teacher.id !== parsed.teacherId) {
+        if (!student.class || student.class.teacher.id !== ctx.auth.teacherId) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: `You don't have access to student: ${student.name}`,

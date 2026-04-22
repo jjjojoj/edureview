@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { ossClient, getOSSObjectUrl } from "~/server/storage";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
 const ALLOWED_FILE_TYPES = [
   "image/jpeg",
@@ -17,22 +15,17 @@ const ALLOWED_FILE_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
-export const generatePresignedUploadUrl = baseProcedure
+export const generatePresignedUploadUrl = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     fileName: z.string().max(255).regex(/^[^/\\]+$/, "文件名不能包含路径分隔符"),
     fileType: z.enum(ALLOWED_FILE_TYPES, { message: "不支持的文件类型" }),
     folderName: z.enum(["assignment-uploads", "exam-uploads", "student-reports", "teaching-materials"]),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Generate a unique file name with timestamp
       const timestamp = Date.now();
-      const uniqueFileName = `${input.folderName}/teacher-${parsed.teacherId}/${timestamp}-${input.fileName}`;
+      const uniqueFileName = `${input.folderName}/teacher-${ctx.auth.teacherId}/${timestamp}-${input.fileName}`;
 
       // Generate presigned URL for upload (expires in 1 hour)
       const presignedUrl = await ossClient.signatureUrl(uniqueFileName, {

@@ -1,87 +1,71 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const assignStudentToGroup = baseProcedure
+export const assignStudentToGroup = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     studentId: z.number(),
-    groupId: z.number().nullable(), // null to remove from group
+    groupId: z.number(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
+      // Verify teacher authentication - get teacher's classes
+      const teacherClasses = await db.class.findMany({
+        where: { teacherId: ctx.auth.teacherId },
+        select: { id: true },
+      });
 
-      // Get student details and verify teacher permission
+      const teacherClassIds = teacherClasses.map(c => c.id);
+
+      // Get the student and verify they're in the teacher's class
       const student = await db.student.findFirst({
         where: {
           id: input.studentId,
-        },
-        include: {
-          class: true,
-          group: true,
+          classId: { in: teacherClassIds },
         },
       });
 
       if (!student) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Student not found",
+          message: "Student not found or not in your classes",
         });
       }
 
-      // Verify that the class belongs to the teacher
-      if (!student.class || student.class.teacherId !== parsed.teacherId) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to modify this student",
-        });
-      }
-
-      // If assigning to a group, verify the group belongs to the same class
-      if (input.groupId) {
-        const group = await db.studentGroup.findFirst({
-          where: {
-            id: input.groupId,
-            classId: student.classId!,
-          },
-        });
-
-        if (!group) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Group not found or doesn't belong to the same class",
-          });
-        }
-      }
-
-      // Update student's group assignment
-      const updatedStudent = await db.student.update({
+      // Get the group and verify it's in the same class
+      const group = await db.studentGroup.findFirst({
         where: {
-          id: input.studentId,
+          id: input.groupId,
+          classId: student.classId,
         },
-        data: {
-          groupId: input.groupId,
-        },
+      });
+
+      if (!group) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Group not found or not in the same class as the student",
+        });
+      }
+
+      // Assign student to group
+      const updated = await db.student.update({
+        where: { id: input.studentId },
+        data: { groupId: input.groupId },
         include: {
           group: true,
+          class: true,
         },
       });
 
       return {
         success: true,
         student: {
-          id: updatedStudent.id,
-          name: updatedStudent.name,
-          studentId: updatedStudent.studentId,
-          group: updatedStudent.group,
+          id: updated.id,
+          name: updated.name,
+          groupId: updated.groupId,
+          groupName: updated.group?.name,
         },
-        action: input.groupId ? 'assigned' : 'removed',
       };
     } catch (error) {
       if (error instanceof TRPCError) {

@@ -1,39 +1,30 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
 const getUploadStatsSchema = z.object({
-  authToken: z.string(),
   timeRange: z.enum(["day", "week", "month", "all"]).default("week"),
   includeAnalytics: z.boolean().default(true),
 });
 
 const getSystemStatsSchema = z.object({
-  authToken: z.string(),
   adminOnly: z.boolean().default(false),
 });
 
-export const getUserUploadStatsProcedure = baseProcedure
+export const getUserUploadStatsProcedure = authedProcedure
   .input(getUploadStatsSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     try {
-      // Verify authentication (works for both parents and teachers)
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      
-      // Try to parse as parent first, then teacher
+      // Determine user type from auth context
       let userId: number;
       let userType: "parent" | "teacher";
       
-      try {
-        const parentParsed = z.object({ parentId: z.number() }).parse(verified);
-        userId = parentParsed.parentId;
+      if (ctx.auth.parentId) {
+        userId = ctx.auth.parentId;
         userType = "parent";
-      } catch {
-        const teacherParsed = z.object({ teacherId: z.number() }).parse(verified);
-        userId = teacherParsed.teacherId;
+      } else {
+        userId = ctx.auth.teacherId!;
         userType = "teacher";
       }
 
@@ -205,26 +196,16 @@ export const getUserUploadStatsProcedure = baseProcedure
     }
   });
 
-export const getSystemStatsProcedure = baseProcedure
+export const getSystemStatsProcedure = authedProcedure
   .input(getSystemStatsSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     try {
-      // Verify authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      
-      // For now, we'll allow teachers to see system stats
-      // In a real system, you'd want admin-only access
+      // Determine authorization from auth context
       let isAuthorized = false;
-      try {
-        z.object({ teacherId: z.number() }).parse(verified);
+      if (ctx.auth.teacherId) {
         isAuthorized = true;
-      } catch {
-        try {
-          z.object({ parentId: z.number() }).parse(verified);
-          isAuthorized = !input.adminOnly; // Parents can see limited stats
-        } catch {
-          isAuthorized = false;
-        }
+      } else if (ctx.auth.parentId) {
+        isAuthorized = !input.adminOnly; // Parents can see limited stats
       }
 
       if (!isAuthorized) {

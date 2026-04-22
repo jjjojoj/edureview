@@ -1,132 +1,102 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const deleteStudentFromClass = baseProcedure
+export const deleteStudentFromClass = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     studentId: z.number(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
       // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
+      const teacherClasses = await db.class.findMany({
+        where: { teacherId: ctx.auth.teacherId },
+        select: { id: true },
+      });
 
-      // Get student details and verify teacher permission
+      const teacherClassIds = teacherClasses.map(c => c.id);
+
+      // Get the student and verify they're in the teacher's class
       const student = await db.student.findFirst({
         where: {
           id: input.studentId,
+          classId: { in: teacherClassIds },
         },
         include: {
           class: true,
+          parent: true,
         },
       });
 
       if (!student) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Student not found",
+          message: "Student not found or not in your classes",
         });
       }
 
-      // Verify that the class belongs to the teacher
-      if (!student.class || student.class.teacherId !== parsed.teacherId) {
+      // Check if student has linked parent account
+      if (student.parentId) {
         throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to delete this student",
+          code: "BAD_REQUEST",
+          message: "Cannot delete student with a linked parent account. Please unlink the parent first.",
         });
       }
 
-      // Get the student's current studentId for inheritance logic
-      const deletedStudentId = student.studentId;
-      const classId = student.classId;
-
-      // Start transaction to handle deletion and ID inheritance
-      const result = await db.$transaction(async (prisma) => {
-        // Delete the student first (this will cascade delete related records)
-        await prisma.student.delete({
-          where: {
-            id: input.studentId,
-          },
+      // Delete all related records in a transaction
+      await db.$transaction(async (tx) => {
+        // Delete mistakes related to this student
+        await tx.mistake.deleteMany({
+          where: { studentId: input.studentId },
         });
 
-        // If the student had a studentId, implement inheritance logic
-        if (deletedStudentId) {
-          // Parse the studentId to get the numeric part
-          const numericMatch = deletedStudentId.match(/(\d+)/);
-          if (numericMatch) {
-            const deletedIdNumber = parseInt(numericMatch[1] ?? '0');
+        // Delete exam mistakes related to this student
+        await tx.examMistake.deleteMany({
+          where: { studentId: input.studentId },
+        });
 
-            // Get all students in the class with higher student IDs
-            const studentsToUpdate = await prisma.student.findMany({
-              where: {
-                classId: classId,
-                studentId: {
-                  not: null,
-                },
-              },
-              orderBy: {
-                studentId: 'asc',
-              },
-            });
+        // Delete assignment analyses for student's assignments
+        const assignments = await tx.assignment.findMany({
+          where: { studentId: input.studentId },
+          select: { id: true },
+        });
 
-            // Find students with higher numeric IDs and update them
-            const updates: Promise<any>[] = [];
+        await tx.assignmentAnalysis.deleteMany({
+          where: { assignmentId: { in: assignments.map(a => a.id) } },
+        });
 
-            for (const classStudent of studentsToUpdate) {
-              if (!classStudent.studentId) continue;
+        // Delete student's assignments
+        await tx.assignment.deleteMany({
+          where: { studentId: input.studentId },
+        });
 
-              const studentNumericMatch = classStudent.studentId.match(/(\d+)/);
-              if (studentNumericMatch) {
-                const studentIdNumber = parseInt(studentNumericMatch[1] ?? '0');
+        // Delete student's exams
+        await tx.exam.deleteMany({
+          where: { studentId: input.studentId },
+        });
 
-                if (studentIdNumber > deletedIdNumber) {
-                  // Inherit the previous ID (decrease by 1)
-                  const newIdNumber = studentIdNumber - 1;
+        // Delete student's knowledge area progress
+        await tx.studentKnowledgeArea.deleteMany({
+          where: { studentId: input.studentId },
+        });
 
-                  // Preserve the original format (e.g., "001", "02", etc.)
-                  let newStudentId: string;
-                  if (deletedStudentId.startsWith('0')) {
-                    // Handle leading zeros
-                    const paddedLength = deletedStudentId.length;
-                    newStudentId = newIdNumber.toString().padStart(paddedLength, '0');
-                  } else {
-                    newStudentId = newIdNumber.toString();
-                  }
+        // Remove student from any group
+        await tx.student.update({
+          where: { id: input.studentId },
+          data: { groupId: null },
+        });
 
-                  updates.push(
-                    prisma.student.update({
-                      where: { id: classStudent.id },
-                      data: { studentId: newStudentId },
-                    })
-                  );
-                }
-              }
-            }
-
-            // Execute all updates
-            if (updates.length > 0) {
-              await Promise.all(updates);
-            }
-          }
-        }
-
-        return {
-          success: true,
-          deletedStudent: {
-            id: input.studentId,
-            name: student.name,
-            studentId: deletedStudentId,
-          },
-          inheritanceApplied: !!deletedStudentId,
-        };
+        // Delete the student
+        await tx.student.delete({
+          where: { id: input.studentId },
+        });
       });
 
-      return result;
+      return {
+        success: true,
+        message: `Student "${student.name}" has been deleted from class "${student.class?.name}"`,
+      };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

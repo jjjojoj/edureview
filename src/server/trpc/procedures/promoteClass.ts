@@ -1,28 +1,21 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const promoteClass = baseProcedure
+export const promoteClass = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     oldClassId: z.number(),
     newClassName: z.string().min(1, "新班级名称不能为空").max(100, "班级名称过长"),
     newGrade: z.string().min(1, "年级不能为空").max(20, "年级名称过长"),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify old class ownership and ensure it's active
       const oldClass = await db.class.findFirst({
         where: {
           id: input.oldClassId,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
           status: 'active',
         },
         include: {
@@ -66,7 +59,7 @@ export const promoteClass = baseProcedure
         data: {
           name: input.newClassName,
           description: `${oldClass.description ? oldClass.description + ' - ' : ''}升级到${input.newGrade}`,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
           invitationCode,
           invitationCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
           initialStudentCount: oldClass.students.length,

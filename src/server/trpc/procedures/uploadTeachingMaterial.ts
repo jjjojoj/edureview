@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const uploadTeachingMaterial = baseProcedure
+export const uploadTeachingMaterial = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     title: z.string().min(1, "Title is required"),
     description: z.string().optional(),
     contentType: z.enum(["document", "image", "text", "video", "audio", "other"]),
@@ -15,12 +12,8 @@ export const uploadTeachingMaterial = baseProcedure
     textContent: z.string().optional(),
     knowledgeAreaId: z.number().optional(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Validate that either fileUrl or textContent is provided
       if (!input.fileUrl && !input.textContent) {
         throw new TRPCError({
@@ -51,7 +44,7 @@ export const uploadTeachingMaterial = baseProcedure
           contentType: input.contentType,
           fileUrl: input.fileUrl,
           textContent: input.textContent,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
           knowledgeAreaId: input.knowledgeAreaId,
         },
         include: {

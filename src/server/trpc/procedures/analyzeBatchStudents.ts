@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 import { generateText } from "ai";
 import { AI_MODELS, type AIModelKey } from "~/server/ai-service";
 
@@ -247,18 +245,13 @@ function parseBatchStudentResponse(text: string): BatchAnalysisResponse {
   }
 }
 
-export const analyzeBatchStudents = baseProcedure
+export const analyzeBatchStudents = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     imageBase64: z.string(),
     modelKey: z.string().default('siliconcloud/qwen2.5-vl-7b'),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       const modelKey = input.modelKey as AIModelKey;
       const modelConfig = AI_MODELS[modelKey];
 

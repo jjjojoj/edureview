@@ -1,22 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const getClassPerformanceTrends = baseProcedure
+export const getClassPerformanceTrends = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     classId: z.number(),
     timeRange: z.enum(['7d', '30d', '90d', '1y', 'all']).optional().default('30d'),
   }))
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Calculate date range
       const now = new Date();
       let startDate: Date;
@@ -44,7 +37,7 @@ export const getClassPerformanceTrends = baseProcedure
       const classData = await db.class.findFirst({
         where: {
           id: input.classId,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
         },
       });
 

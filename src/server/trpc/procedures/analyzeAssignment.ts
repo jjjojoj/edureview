@@ -2,23 +2,16 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { analyzeAssignment, type AIModelKey } from "~/server/ai-service";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
-import jwt from "jsonwebtoken";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const analyzeAssignmentProcedure = baseProcedure
+export const analyzeAssignmentProcedure = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     assignmentId: z.number(),
     imageUrl: z.string(),
     modelKey: z.string().optional(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify parent authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ parentId: z.number() }).parse(verified);
-
       // Get the assignment and verify parent has access to it
       const assignment = await db.assignment.findUnique({
         where: { id: input.assignmentId },
@@ -38,7 +31,7 @@ export const analyzeAssignmentProcedure = baseProcedure
         });
       }
 
-      if (!assignment.student || assignment.student.parent?.id !== parsed.parentId) {
+      if (!assignment.student || assignment.student.parent?.id !== ctx.auth.parentId) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only analyze your own child's assignments",

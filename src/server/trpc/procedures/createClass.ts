@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
 // Helper function to generate 6-digit invitation code
 function generateInvitationCode(): string {
@@ -44,28 +42,13 @@ async function generateUniqueInvitationCode(): Promise<string> {
   return code;
 }
 
-export const createClass = baseProcedure
+export const createClass = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     name: z.string().min(1),
     description: z.string().optional(),
     initialStudentCount: z.number().min(1).max(100).optional(),
   }))
-  .mutation(async ({ input }) => {
-    // First, verify authentication separately
-    let teacherId: number;
-    try {
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-      teacherId = parsed.teacherId;
-    } catch (error) {
-      console.error("JWT verification failed:", error);
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Invalid or expired token",
-      });
-    }
-
+  .mutation(async ({ input, ctx }) => {
     // Then handle database operations with proper error handling
     try {
       // Generate unique invitation code
@@ -79,7 +62,7 @@ export const createClass = baseProcedure
           name: input.name,
           description: input.description,
           initialStudentCount: input.initialStudentCount,
-          teacherId,
+          teacherId: ctx.auth.teacherId,
           invitationCode,
           invitationCodeExpiresAt,
           lastInvitationCodeGeneratedAt: now, // Set the initial generation time

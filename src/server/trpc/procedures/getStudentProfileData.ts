@@ -1,27 +1,20 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 
-export const getStudentProfileData = baseProcedure
+export const getStudentProfileData = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     studentId: z.number(),
   }))
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Get the student and verify the teacher has access
       const student = await db.student.findFirst({
         where: {
           id: input.studentId,
           class: {
-            teacherId: parsed.teacherId,
+            teacherId: ctx.auth.teacherId,
           },
         },
         include: {

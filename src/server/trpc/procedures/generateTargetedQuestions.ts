@@ -1,32 +1,25 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 import { generateTargetedQuestions, type AIModelKey } from "~/server/ai-service";
 
-export const generateTargetedQuestionsProcedure = baseProcedure
+export const generateTargetedQuestionsProcedure = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     studentId: z.number(),
     knowledgeAreaIds: z.array(z.number()).optional(), // Optional filter by specific knowledge areas
     questionCount: z.number().min(1).max(20).default(5), // Number of questions to generate
     difficultyLevel: z.enum(["easy", "medium", "hard"]).default("medium"),
     modelKey: z.string().optional(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify the student belongs to one of the teacher's classes
       const student = await db.student.findFirst({
         where: {
           id: input.studentId,
           class: {
-            teacherId: parsed.teacherId,
+            teacherId: ctx.auth.teacherId,
           },
         },
         include: {
@@ -92,7 +85,7 @@ export const generateTargetedQuestionsProcedure = baseProcedure
       // Get relevant teaching materials from the teacher's knowledge base
       const teachingMaterials = await db.teachingMaterial.findMany({
         where: {
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
           knowledgeAreaId: { in: knowledgeAreaIds },
         },
         include: {

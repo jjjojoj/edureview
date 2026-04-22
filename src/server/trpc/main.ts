@@ -44,7 +44,7 @@ export const authedProcedure = baseProcedure
     authToken: z.string().min(1),
   }))
   .use(async ({ input, next }) => {
-    let payload: { teacherId?: string; parentId?: string };
+    let payload: { teacherId?: number; parentId?: number };
     try {
       payload = jwt.verify(input.authToken, env.JWT_SECRET) as typeof payload;
     } catch {

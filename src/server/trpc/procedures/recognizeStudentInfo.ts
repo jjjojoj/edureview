@@ -1,23 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { recognizeStudentInfo, getAvailableVisionModels, type AIModelKey } from "~/server/ai-service";
-import { baseProcedure } from "~/server/trpc/main";
+import { authedProcedure, baseProcedure } from "~/server/trpc/main";
 import { env } from "~/server/env";
 import { ossClient } from "~/server/storage";
 
-export const recognizeStudentInfoProcedure = baseProcedure
+export const recognizeStudentInfoProcedure = authedProcedure
   .input(z.object({
-    authToken: z.string(),
     imageUrl: z.string(),
     modelKey: z.string().optional(),
   }))
   .mutation(async ({ input }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Extract object key from OSS URL
       const ossUrlPattern = new RegExp(`https://${env.OSS_BUCKET}\\.${env.OSS_ENDPOINT}/(.+)`);
       const match = input.imageUrl.match(ossUrlPattern);

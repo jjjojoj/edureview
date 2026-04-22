@@ -1,28 +1,21 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 import { ossClient } from "~/server/storage";
 import puppeteer from "puppeteer";
 
-export const concludeClass = baseProcedure
+export const concludeClass = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     classId: z.number(),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify class ownership and ensure it's not already archived
       const classData = await db.class.findFirst({
         where: {
           id: input.classId,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
           status: 'active', // Only allow archiving active classes
         },
         include: {
@@ -72,8 +65,16 @@ export const concludeClass = baseProcedure
 
       // Generate Individual Student Summary Reports
       const studentReports: string[] = [];
+      let classPdfBuffer: Buffer | undefined;
       
-      for (const student of classData.students) {
+      // Launch a single browser instance for all PDFs
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      
+      try {
+        for (const student of classData.students) {
         const assignmentScores = student.assignments
           .filter(a => a.analysis?.grade)
           .map(a => parseFloat(a.analysis!.grade!));
@@ -197,12 +198,7 @@ export const concludeClass = baseProcedure
           </html>
         `;
 
-        // Generate PDF for this student
-        const browser = await puppeteer.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        });
-        
+        // Generate PDF for this student using shared browser
         const page = await browser.newPage();
         await page.setContent(studentHtml, { waitUntil: 'networkidle0' });
         
@@ -217,7 +213,7 @@ export const concludeClass = baseProcedure
           },
         });
         
-        await browser.close();
+        await page.close();
 
         // Upload student PDF to OSS
         const studentFileName = `student-summary-${student.id}-${Date.now()}.pdf`;
@@ -383,16 +379,11 @@ export const concludeClass = baseProcedure
         </html>
       `;
 
-      // Generate class analysis PDF
-      const classBrowser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-      
-      const classPage = await classBrowser.newPage();
+      // Generate class analysis PDF using shared browser
+      const classPage = await browser.newPage();
       await classPage.setContent(classAnalysisHtml, { waitUntil: 'networkidle0' });
       
-      const classPdfBuffer = await classPage.pdf({
+      classPdfBuffer = await classPage.pdf({
         format: 'A4',
         printBackground: true,
         margin: {
@@ -403,7 +394,11 @@ export const concludeClass = baseProcedure
         },
       });
       
-      await classBrowser.close();
+      await classPage.close();
+      } finally {
+        // Ensure browser is always closed, even on error
+        await browser.close();
+      }
 
       // Upload class analysis PDF to OSS
       const classFileName = `class-analysis-${input.classId}-${Date.now()}.pdf`;

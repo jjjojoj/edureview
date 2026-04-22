@@ -1,32 +1,25 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 import { db } from "~/server/db";
-import { baseProcedure } from "~/server/trpc/main";
-import { env } from "~/server/env";
+import { authedProcedure } from "~/server/trpc/main";
 import { ossClient } from "~/server/storage";
 import puppeteer from "puppeteer";
 
-export const generateClassReportPdf = baseProcedure
+export const generateClassReportPdf = authedProcedure
   .input(z.object({ 
-    authToken: z.string(),
     classId: z.number(),
     timeRange: z.enum(['7d', '30d', '90d', '1y', 'all']).optional().default('30d'),
     includeStudentDetails: z.boolean().optional().default(true),
     includePerformanceCharts: z.boolean().optional().default(true),
     includeAIInsights: z.boolean().optional().default(true),
   }))
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     try {
-      // Verify teacher authentication
-      const verified = jwt.verify(input.authToken, env.JWT_SECRET);
-      const parsed = z.object({ teacherId: z.number() }).parse(verified);
-
       // Verify class ownership
       const classData = await db.class.findFirst({
         where: {
           id: input.classId,
-          teacherId: parsed.teacherId,
+          teacherId: ctx.auth.teacherId,
         },
         include: {
           teacher: {
