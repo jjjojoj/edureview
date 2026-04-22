@@ -6,14 +6,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useTRPC } from "~/trpc/react";
 import { useAuthStore } from "~/stores/authStore";
 import {
-  Upload,
-  Camera,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
   X,
-  Pause,
-  Play,
   Brain,
 } from "lucide-react";
 import { useToast } from "~/components/Toast";
@@ -21,6 +14,9 @@ import { getErrorMessage } from "~/utils/trpcError";
 import { FileUploadZone } from "~/components/assignment/FileUploadZone";
 import { AssignmentPreview, type AssignmentFile } from "~/components/assignment/AssignmentPreview";
 import { AssignmentConfig } from "~/components/assignment/AssignmentConfig";
+import { TeacherCameraCapture } from "~/components/assignment/TeacherCameraCapture";
+import { UploadSubmitSection } from "~/components/assignment/UploadSubmitSection";
+import { compressImage } from "~/components/assignment/compressImage";
 
 const uploadSchema = z.object({
   title: z.string().min(1, "Assignment title is required"),
@@ -44,49 +40,6 @@ interface EnhancedTeacherAssignmentUploadProps {
 }
 
 type UploadQueueStatus = "idle" | "running" | "paused" | "completed";
-
-const compressImage = async (file: File, maxWidth = 1920, maxHeight = 1080, quality = 0.8): Promise<File> => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-
-    img.onload = () => {
-      let { width, height } = img;
-
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      ctx?.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const compressedFile = new File([blob], file.name, {
-            type: file.type,
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
-        } else {
-          resolve(file);
-        }
-      }, file.type, quality);
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-};
 
 export function EnhancedTeacherAssignmentUpload({
   isOpen,
@@ -223,7 +176,7 @@ export function EnhancedTeacherAssignmentUpload({
         toast.success(`Added ${validFiles.length} files`);
       }
     },
-    [files, maxFiles]
+    [files, maxFiles, toast]
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -599,6 +552,14 @@ export function EnhancedTeacherAssignmentUpload({
 
   if (!isOpen) return null;
 
+  const defaultResumeData: UploadFormData = {
+    title: "Resume",
+    description: "",
+    selectedModel: "siliconcloud/qwen2.5-vl-7b",
+    confidenceThreshold: 0.7,
+    autoAssignStudents: true,
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-6xl mx-auto w-full max-h-[90vh] overflow-y-auto">
@@ -690,123 +651,25 @@ export function EnhancedTeacherAssignmentUpload({
             onAssignStudentToFile={assignStudentToFile}
           />
 
-          {/* Submit Button */}
-          <div className="space-y-3">
-            {files.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <div className="flex items-start">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
-                  <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">上传前检查清单：</p>
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      <li>确保图片中学生姓名清晰可见</li>
-                      <li>检查作业标题和描述是否正确</li>
-                      <li>确认AI模型和置信度设置</li>
-                      <li>
-                        预计处理时间：约 {files.length * 15} 秒
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex space-x-3">
-              <button
-                type="submit"
-                disabled={files.length === 0 || queueStatus === "running"}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {queueStatus === "running" ? (
-                  <>
-                    <Brain className="w-4 h-4 inline mr-2 animate-pulse" />
-                    Processing... ({completedCount}/{files.length})
-                  </>
-                ) : queueStatus === "completed" ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 inline mr-2" />
-                    All Complete
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 inline mr-2" />
-                    Start Batch Upload & Analysis ({files.length} files)
-                  </>
-                )}
-              </button>
-
-              {queueStatus === "running" && (
-                <button
-                  type="button"
-                  onClick={pauseQueue}
-                  className="px-4 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-                >
-                  <Pause className="w-4 h-4" />
-                </button>
-              )}
-
-              {queueStatus === "paused" && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    resumeQueue({
-                      title: "Resume",
-                      description: "",
-                      selectedModel: "siliconcloud/qwen2.5-vl-7b",
-                      confidenceThreshold: 0.7,
-                      autoAssignStudents: true,
-                    })
-                  }
-                  className="px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  <Play className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Submit Section */}
+          <UploadSubmitSection
+            uploadType={uploadType}
+            files={files}
+            queueStatus={queueStatus}
+            completedCount={completedCount}
+            onPause={pauseQueue}
+            onResume={() => resumeQueue(defaultResumeData)}
+          />
         </form>
 
         {/* Camera Modal */}
-        {showCamera && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Take Photo</h3>
-                <button
-                  onClick={stopCamera}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full rounded-lg"
-                />
-
-                <div className="flex space-x-3">
-                  <button
-                    onClick={capturePhoto}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Camera className="w-4 h-4 inline mr-2" />
-                    Capture
-                  </button>
-                  <button
-                    onClick={stopCamera}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <TeacherCameraCapture
+          isOpen={showCamera}
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          onCapture={capturePhoto}
+          onClose={stopCamera}
+        />
 
         <canvas ref={canvasRef} className="hidden" />
       </div>

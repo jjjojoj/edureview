@@ -1,12 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTRPC } from '~/trpc/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '~/components/Toast';
-import { Upload, FileText, Image, Video, Music, File, X, Plus } from 'lucide-react';
+import { FileText, Image, Video, Music, File, X } from 'lucide-react';
 import { useAuthStore } from '~/stores/authStore';
+import { FileDropZone } from '~/components/upload/FileDropZone';
 
 const uploadSchema = z.object({
   title: z.string().min(1, '标题不能为空'),
@@ -27,7 +28,6 @@ export function TeachingMaterialUpload({ onSuccess, onClose }: TeachingMaterialU
   const toast = useToast();
   const trpc = useTRPC();
   const { authToken } = useAuthStore();
-  const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -73,62 +73,23 @@ export function TeachingMaterialUpload({ onSuccess, onClose }: TeachingMaterialU
     }),
   });
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
+  const handleFileSelect = (file: File) => {
+    setUploadedFile(file);
+
+    // Auto-detect content type based on file type
+    if (file.type.startsWith('image/')) {
+      setValue('contentType', 'image');
+    } else if (file.type.startsWith('video/')) {
+      setValue('contentType', 'video');
+    } else if (file.type.startsWith('audio/')) {
+      setValue('contentType', 'audio');
+    } else {
+      setValue('contentType', 'document');
     }
-  }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setUploadedFile(file);
-      
-      // Auto-detect content type based on file type
-      if (file.type.startsWith('image/')) {
-        setValue('contentType', 'image');
-      } else if (file.type.startsWith('video/')) {
-        setValue('contentType', 'video');
-      } else if (file.type.startsWith('audio/')) {
-        setValue('contentType', 'audio');
-      } else {
-        setValue('contentType', 'document');
-      }
-
-      // Set title to filename if not already set
-      if (!watch('title')) {
-        setValue('title', file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  }, [setValue, watch]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setUploadedFile(file);
-      
-      // Auto-detect content type and set title
-      if (file.type.startsWith('image/')) {
-        setValue('contentType', 'image');
-      } else if (file.type.startsWith('video/')) {
-        setValue('contentType', 'video');
-      } else if (file.type.startsWith('audio/')) {
-        setValue('contentType', 'audio');
-      } else {
-        setValue('contentType', 'document');
-      }
-
-      if (!watch('title')) {
-        setValue('title', file.name.replace(/\.[^/.]+$/, ''));
-      }
+    // Set title to filename if not already set
+    if (!watch('title')) {
+      setValue('title', file.name.replace(/\.[^/.]+$/, ''));
     }
   };
 
@@ -203,16 +164,6 @@ export function TeachingMaterialUpload({ onSuccess, onClose }: TeachingMaterialU
     }
   };
 
-  const getContentTypeIcon = (type: string) => {
-    switch (type) {
-      case 'image': return <Image className="h-5 w-5" />;
-      case 'video': return <Video className="h-5 w-5" />;
-      case 'audio': return <Music className="h-5 w-5" />;
-      case 'text': return <FileText className="h-5 w-5" />;
-      default: return <File className="h-5 w-5" />;
-    }
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -258,54 +209,12 @@ export function TeachingMaterialUpload({ onSuccess, onClose }: TeachingMaterialU
 
         {/* File Upload Area (for non-text content) */}
         {contentType !== 'text' && (
-          <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-              dragActive
-                ? 'border-blue-400 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            {uploadedFile ? (
-              <div className="flex items-center justify-center space-x-2">
-                {getContentTypeIcon(contentType)}
-                <span className="text-sm font-medium">{uploadedFile.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setUploadedFile(null)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">拖拽文件到此处或点击上传</p>
-                <input
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-upload"
-                  accept={
-                    contentType === 'image' ? 'image/*' :
-                    contentType === 'video' ? 'video/*' :
-                    contentType === 'audio' ? 'audio/*' :
-                    '*/*'
-                  }
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                >
-                  选择文件
-                </label>
-              </>
-            )}
-          </div>
+          <FileDropZone
+            contentType={contentType}
+            uploadedFile={uploadedFile}
+            onFileSelect={handleFileSelect}
+            onFileRemove={() => setUploadedFile(null)}
+          />
         )}
 
         {/* Text Content Area (for text content type) */}

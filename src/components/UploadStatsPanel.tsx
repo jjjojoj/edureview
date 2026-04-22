@@ -7,20 +7,15 @@ import {
   TrendingUp,
   Users,
   FileText,
-  Brain,
   CheckCircle,
   AlertCircle,
   Clock,
-  Calendar,
-  Target,
   Zap,
-  Eye,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
 } from "lucide-react";
 import { useToast } from "~/components/Toast";
 import { getErrorMessage } from "~/utils/trpcError";
+import { AdvancedAnalytics } from "~/components/upload/AdvancedAnalytics";
 
 interface UploadStatsPanelProps {
   userType?: "parent" | "teacher" | "admin";
@@ -46,7 +41,6 @@ export function UploadStatsPanel({
 }: UploadStatsPanelProps) {
   const toast = useToast();
   const [timeRange, setTimeRange] = useState<TimeRange>("week");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const trpc = useTRPC();
@@ -104,14 +98,14 @@ export function UploadStatsPanel({
       {
         title: "AI Analyzed",
         value: summary.analyzedCount,
-        icon: Brain,
+        icon: CheckCircle,
         color: "text-purple-600",
       },
       {
         title: "Analysis Rate",
         value: `${summary.analysisRate}%`,
         trend: summary.analysisRate >= 80 ? "up" : summary.analysisRate >= 50 ? "neutral" : "down",
-        icon: Target,
+        icon: Zap,
         color: "text-green-600",
       },
       ...(analytics?.averageGrade
@@ -159,19 +153,6 @@ export function UploadStatsPanel({
         color: "text-green-600",
       },
     ];
-  };
-
-  const formatTrendData = (data: Record<string, number>) => {
-    return Object.entries(data)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-7) // Last 7 days
-      .map(([date, count]) => ({
-        date: new Date(date).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        count,
-      }));
   };
 
   if (!authToken) {
@@ -291,7 +272,7 @@ export function UploadStatsPanel({
                 </h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="space-y-2">
-                    {userStatsQuery.data.recentUploads.slice(0, 5).map((upload) => (
+                    {userStatsQuery.data.recentUploads.slice(0, 5).map((upload: any) => (
                       <div key={upload.id} className="flex items-center justify-between py-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{upload.title}</p>
@@ -318,62 +299,7 @@ export function UploadStatsPanel({
 
             {/* Analytics Section */}
             {(userStatsQuery.data as any)?.analytics && (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center justify-between w-full p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Brain className="w-5 h-5 text-purple-600 mr-2" />
-                    <span className="font-medium text-gray-900">Advanced Analytics</span>
-                  </div>
-                  {showAdvanced ? (
-                    <ChevronUp className="w-5 h-5 text-gray-600" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-600" />
-                  )}
-                </button>
-
-                {showAdvanced && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Top Strengths */}
-                    {(userStatsQuery.data as any)?.analytics.topStrengths.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-gray-900 flex items-center">
-                          <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
-                          Top Strengths
-                        </h5>
-                        <div className="space-y-2">
-                          {(userStatsQuery.data as any)?.analytics.topStrengths.map((item: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded">
-                              <span className="text-sm text-green-800">{item.strength}</span>
-                              <span className="text-xs font-medium text-green-600">{item.count}x</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Top Improvements */}
-                    {(userStatsQuery.data as any)?.analytics.topImprovements.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-gray-900 flex items-center">
-                          <TrendingUp className="w-4 h-4 text-blue-600 mr-2" />
-                          Areas for Improvement
-                        </h5>
-                        <div className="space-y-2">
-                          {(userStatsQuery.data as any)?.analytics.topImprovements.map((item: any, index: number) => (
-                            <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                              <span className="text-sm text-blue-800">{item.improvement}</span>
-                              <span className="text-xs font-medium text-blue-600">{item.count}x</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <AdvancedAnalytics analytics={(userStatsQuery.data as any).analytics} />
             )}
           </>
         )}
