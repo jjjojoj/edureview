@@ -1,472 +1,578 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, lazy, Suspense } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "~/trpc/react";
-import { useAuthStore } from "~/stores/authStore";
-import { RequireAuth } from "~/components/RequireAuth";
-import { DashboardSkeleton } from "~/components/DashboardSkeleton";
-import { ModalWrapper } from "~/components/ModalWrapper";
-
-const CreateClassModal = lazy(() => import("~/components/CreateClassModal").then(m => ({ default: m.CreateClassModal })));
-const TeachingMaterialLibrary = lazy(() => import("~/components/TeachingMaterialLibrary").then(m => ({ default: m.TeachingMaterialLibrary })));
-const TargetedQuestionGenerator = lazy(() => import("~/components/TargetedQuestionGenerator").then(m => ({ default: m.TargetedQuestionGenerator })));
-const ClassDataAnalysis = lazy(() => import("~/components/ClassDataAnalysis").then(m => ({ default: m.ClassDataAnalysis })));
-const MistakeLibrary = lazy(() => import("~/components/MistakeLibrary").then(m => ({ default: m.MistakeLibrary })));
-const ReviewSchedule = lazy(() => import("~/components/ReviewSchedule").then(m => ({ default: m.ReviewSchedule })));
-
-const LoadingSpinner = () => <div className="flex items-center justify-center p-8 text-gray-500">加载中...</div>;
-import { 
-  Plus, 
-  Users, 
-  BookOpen, 
-  TrendingUp, 
-  FileText, 
-  Clock,
-  GraduationCap,
-  LogOut,
-  Settings,
-  ChevronRight,
-  Sparkles,
-  BarChart3,
-  Calendar,
+import {
   Award,
+  BookOpen,
+  Brain,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  LibraryBig,
+  Plus,
   Target,
-  Zap,
-  Brain
+  TrendingDown,
+  TrendingUp,
+  Upload,
 } from "lucide-react";
-import { useToast } from "~/components/Toast";
+import {
+  buildInsights,
+  DashboardShell,
+  EmptyState,
+  formatDelta,
+  formatPercent,
+  MetricCard,
+  MiniBars,
+  ModuleButton,
+  Panel,
+  RankIndicator,
+  TrendChart,
+  type DashboardPageContext,
+} from "~/components/dashboard/DashboardShell";
 
 export const Route = createFileRoute("/dashboard/")({
-  component: Dashboard,
+  component: DashboardOverview,
 });
 
-function Dashboard() {
+function DashboardOverview() {
   const navigate = useNavigate();
-  const { authToken, teacher, logout } = useAuthStore();
-  const userRole = useAuthStore((s) => s.userRole);
-  const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
-  const [showTeachingMaterials, setShowTeachingMaterials] = useState(false);
-  const [showQuestionGenerator, setShowQuestionGenerator] = useState(false);
-  const [showDataAnalysis, setShowDataAnalysis] = useState(false);
-  const [showMistakeLibrary, setShowMistakeLibrary] = useState(false);
-  const [showReviewSchedule, setShowReviewSchedule] = useState(false);
-  const trpc = useTRPC();
-  const toast = useToast();
-
-  // Redirect parents away from teacher dashboard
-  useEffect(() => {
-    if (userRole === "parent") {
-      navigate({ to: "/parent-dashboard" });
-    }
-  }, [userRole, navigate]);
-
-  const classesQuery = useQuery({
-    ...trpc.getTeacherClasses.queryOptions({ authToken: authToken || "" }),
-    enabled: !!authToken,
-  });
-
-  const handleLogout = () => {
-    logout();
-    toast.success("已成功退出登录");
-    navigate({ to: "/", replace: true });
-  };
-
-  const handleClassClick = (classId: number) => {
-    navigate({ to: "/classes/$classId", params: { classId: classId.toString() } });
-  };
-
-  // Ensure only teachers access this dashboard
-  if (!teacher) {
-    return null;
-  }
-
-  if (classesQuery.isLoading) {
-    return (
-      <RequireAuth>
-        <DashboardSkeleton />
-      </RequireAuth>
-    );
-  }
-
-  const classes = classesQuery.data?.classes || [];
-  const totalStudents = classes.reduce((sum, cls) => sum + cls._count.students, 0);
-  const totalAssignments = classes.reduce((sum, cls) => sum + cls._count.assignments, 0);
-  const totalExams = classes.reduce((sum, cls) => sum + cls._count.exams, 0);
-  
 
   return (
-    <RequireAuth>
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      
-      {/* Header */}
-      <header className="relative bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center mr-3 shadow-glow">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gradient-primary">智评</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">{teacher.name}</p>
-                <p className="text-xs text-gray-500">教师工作台</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-all">
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={handleLogout}
-                  className="p-2 text-gray-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <DashboardShell
+      activeNav="overview"
+      title="首页概览"
+      actions={(ctx) => (
+        <>
+          <ModuleButton icon={LibraryBig} onClick={ctx.openTeachingMaterials}>
+            教学资料
+          </ModuleButton>
+          <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
+            智能出题
+          </ModuleButton>
+          <ModuleButton icon={Upload} onClick={ctx.openSelectedClass}>
+            上传作业
+          </ModuleButton>
+        </>
+      )}
+    >
+      {(ctx) => {
+        const insights = buildInsights({
+          selectedClassName: ctx.selectedClass?.name,
+          averageScore: ctx.averageScore,
+          scoreDelta: ctx.scoreDelta,
+          completionRate: ctx.completionRate,
+          lowScoreCount: ctx.studentRanking.filter(
+            (student) => student.averageScore < 60,
+          ).length,
+          weakestArea: ctx.knowledgeAreas[0]?.name,
+          hasPerformanceData: ctx.hasPerformanceData,
+        });
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                欢迎回来，<span className="text-gradient-primary">{teacher.name.split(' ')[0]}</span>！ 
-                <Sparkles className="w-8 h-8 inline ml-2 text-yellow-500" />
-              </h2>
-              <p className="text-gray-600 text-lg">
-                这是您今天班级的最新情况。
-              </p>
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-right">
-                <div className="text-sm text-gray-500 mb-1">今日日期</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {new Date().toLocaleDateString('zh-CN', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="card-interactive p-6 animate-slide-up">
-            <div className="flex items-center justify-between">
+        return (
+          <>
+            <section className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">学生总数</p>
-                <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
+                <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-950">
+                  欢迎回来，{ctx.teacher.name.split(" ")[0]}
+                  <span className="text-amber-400">👋</span>
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {ctx.selectedClass
+                    ? `当前查看 ${ctx.selectedClass.name} 的近期学情。`
+                    : "创建班级后，这里会自动汇总成绩、知识点和作业完成情况。"}
+                </p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-glow">
-                <Users className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="card-interactive p-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">班级总数</p>
-                <p className="text-3xl font-bold text-gray-900">{classes.length}</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-glow">
-                <BookOpen className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
+            <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              <MetricCard
+                title="班级平均分"
+                value={
+                  ctx.averageScore === null ? "--" : ctx.averageScore.toFixed(1)
+                }
+                caption={
+                  ctx.hasPerformanceData ? "基于近期作业与考试" : "等待成绩分析"
+                }
+                trend={formatDelta(ctx.scoreDelta, "分")}
+                tone={
+                  ctx.scoreDelta === null
+                    ? "neutral"
+                    : ctx.scoreDelta >= 0
+                      ? "up"
+                      : "down"
+                }
+                icon={Award}
+                iconClassName="bg-blue-500"
+              />
+              <MetricCard
+                title="优秀率"
+                value={formatPercent(ctx.excellentRate)}
+                caption="90 分及以上学生占比"
+                trend={ctx.excellentRate === null ? "暂无" : "较上期待计算"}
+                tone="up"
+                icon={Award}
+                iconClassName="bg-violet-500"
+              />
+              <MetricCard
+                title="及格率"
+                value={formatPercent(ctx.passingRate)}
+                caption="60 分及以上学生占比"
+                trend={ctx.passingRate === null ? "暂无" : "保持跟踪"}
+                tone="up"
+                icon={CheckCircle2}
+                iconClassName="bg-emerald-500"
+              />
+              <MetricCard
+                title="低分率"
+                value={formatPercent(ctx.lowScoreRate)}
+                caption="低于 60 分学生占比"
+                trend={ctx.lowScoreRate === null ? "暂无" : "需重点关注"}
+                tone="down"
+                icon={Target}
+                iconClassName="bg-orange-500"
+              />
+              <MetricCard
+                title="作业完成率"
+                value={formatPercent(ctx.completionRate)}
+                caption="近期有提交记录学生占比"
+                trend={ctx.completionRate === null ? "暂无" : "持续更新"}
+                tone="up"
+                icon={ClipboardCheck}
+                iconClassName="bg-indigo-500"
+              />
+            </section>
 
-          <div className="card-interactive p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">作业数量</p>
-                <p className="text-3xl font-bold text-gray-900">{totalAssignments}</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-glow">
-                <FileText className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
-
-          <div className="card-interactive p-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-600 mb-1">考试数量</p>
-                <p className="text-3xl font-bold text-gray-900">{totalExams}</p>
-              </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-glow">
-                <Award className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Classes Section */}
-          <div className="lg:col-span-2">
-            <div className="card animate-slide-up" style={{ animationDelay: '0.5s' }}>
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <BookOpen className="w-6 h-6 text-blue-600 mr-3" />
-                    <h3 className="text-lg font-bold text-gray-900">您的班级</h3>
-                  </div>
-                  <button 
-                    onClick={() => setIsCreateClassModalOpen(true)}
-                    className="btn-primary group"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    新建班级
-                    <Sparkles className="w-4 h-4 ml-2 group-hover:rotate-12 transition-transform" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {classesQuery.isLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="flex items-center space-x-4 p-4">
-                          <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
-                          <div className="flex-1">
-                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : classes.length > 0 ? (
-                  <div className="space-y-4">
-                    {classes.map((cls, index) => (
-                      <div 
-                        key={cls.id} 
-                        onClick={() => handleClassClick(cls.id)}
-                        className="card-interactive p-4 border-0 bg-gradient-to-r from-gray-50 to-blue-50/50 hover:from-blue-50 hover:to-indigo-50 cursor-pointer group animate-slide-up"
-                        style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+            <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+              <Panel
+                title="学生成绩趋势"
+                subtitle="班级平均与年级基准对比"
+                className="xl:col-span-7"
+                action={
+                  <div className="flex rounded-lg bg-slate-100 p-1">
+                    {[
+                      ["7d", "近7天"],
+                      ["30d", "近30天"],
+                      ["90d", "近90天"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() =>
+                          ctx.setTimeRange(value as typeof ctx.timeRange)
+                        }
+                        className={`rounded-md px-3 py-2 text-xs font-bold transition ${
+                          ctx.timeRange === value
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-900"
+                        }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center flex-1">
-                            <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-glow">
-                              <GraduationCap className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors">{cls.name}</h4>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                                <div className="flex items-center">
-                                  <Users className="w-3 h-3 mr-1" />
-                                  {cls._count.students} 名学生
-                                  {cls.initialStudentCount && (
-                                    <span className="text-blue-600 ml-1">
-                                      (预期: {cls.initialStudentCount})
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center">
-                                  <FileText className="w-3 h-3 mr-1" />
-                                  {cls._count.assignments} 个作业
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {new Date(cls.createdAt).toLocaleDateString('zh-CN')}
-                                </div>
-                              </div>
-                              {cls.description && (
-                                <p className="text-xs text-gray-400 mt-2">{cls.description}</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                          </div>
-                        </div>
-                      </div>
+                        {label}
+                      </button>
                     ))}
+                  </div>
+                }
+              >
+                <TrendChart
+                  data={ctx.trendChartData}
+                  showPreviewBadge={!ctx.hasPerformanceData}
+                />
+                <TrendDigest ctx={ctx} />
+              </Panel>
+
+              <Panel
+                title="学生综合表现排行"
+                subtitle="前 10 名，基于近期作业和考试"
+                className="xl:col-span-5"
+                action={
+                  <button
+                    onClick={ctx.openDataAnalysis}
+                    className="flex items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-blue-600"
+                  >
+                    更多
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                }
+              >
+                {ctx.studentRanking.length > 0 ? (
+                  <div className="overflow-hidden rounded-lg border border-slate-100">
+                    <table className="w-full table-fixed text-sm">
+                      <thead className="bg-slate-50 text-xs text-slate-500">
+                        <tr>
+                          <th className="w-14 px-3 py-3 text-left font-bold">
+                            排名
+                          </th>
+                          <th className="px-3 py-3 text-left font-bold">
+                            学生姓名
+                          </th>
+                          <th className="w-20 px-3 py-3 text-right font-bold">
+                            平均分
+                          </th>
+                          <th className="w-24 px-3 py-3 text-right font-bold">
+                            趋势
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {ctx.studentRanking.map((student, index) => (
+                          <tr
+                            key={student.studentId}
+                            onClick={() =>
+                              ctx.openSelectedStudent(student.studentId)
+                            }
+                            className="cursor-pointer transition hover:bg-blue-50/60"
+                          >
+                            <td className="px-3 py-3">
+                              <RankIndicator rank={index + 1} />
+                            </td>
+                            <td className="truncate px-3 py-3 font-semibold text-slate-700">
+                              {student.studentName}
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-slate-900">
+                              {student.averageScore.toFixed(1)}
+                            </td>
+                            <td className="px-3 py-3">
+                              <MiniBars
+                                seed={student.studentId + index}
+                                score={student.averageScore}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                      <BookOpen className="w-10 h-10 text-blue-600" />
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-2">还没有班级</h4>
-                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">
-                      创建您的第一个班级，开始管理学生并分析他们的表现
-                    </p>
-                    <button 
-                      onClick={() => setIsCreateClassModalOpen(true)}
-                      className="btn-primary text-lg px-8 py-4 group"
-                    >
-                      <Plus className="w-5 h-5 mr-2" />
-                      创建您的第一个班级
-                      <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
-                    </button>
-                  </div>
+                  <EmptyState
+                    icon={Award}
+                    title="暂无排行数据"
+                    description="上传并分析作业或试卷后，会自动生成学生表现排行。"
+                  />
                 )}
-              </div>
-            </div>
-          </div>
+              </Panel>
+            </section>
 
-          {/* Quick Actions & Analytics */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="card animate-slide-up" style={{ animationDelay: '0.7s' }}>
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center">
-                  <Zap className="w-6 h-6 text-yellow-500 mr-3" />
-                  <h3 className="text-lg font-bold text-gray-900">快捷操作</h3>
+            <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+              <Panel
+                title="知识点掌握情况"
+                subtitle="由错题和知识点标注自动归纳"
+                className="xl:col-span-7"
+                action={
+                  <button
+                    onClick={ctx.openMistakeLibrary}
+                    className="flex items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-blue-600"
+                  >
+                    更多
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                }
+              >
+                {ctx.knowledgeAreas.length > 0 ? (
+                  <div className="grid gap-6 lg:grid-cols-[180px_1fr]">
+                    <div className="flex flex-col items-center justify-center">
+                      <div
+                        className="flex h-36 w-36 items-center justify-center rounded-full"
+                        style={{
+                          background: `conic-gradient(#3b82f6 ${ctx.overallMastery || 0}%, #e2e8f0 0)`,
+                        }}
+                      >
+                        <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white shadow-inner">
+                          <span className="text-2xl font-bold text-slate-950">
+                            {ctx.overallMastery?.toFixed(1)}%
+                          </span>
+                          <span className="text-xs font-semibold text-slate-500">
+                            平均掌握
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {ctx.knowledgeAreas.map((area) => (
+                        <div
+                          key={area.name}
+                          className="grid gap-3 rounded-lg border border-slate-100 px-4 py-3 sm:grid-cols-[1fr_160px_64px]"
+                        >
+                          <div>
+                            <div className="truncate text-sm font-bold text-slate-800">
+                              {area.name}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {area.affectedStudentCount} 名学生受影响，错题{" "}
+                              {area.mistakeCount} 次
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-full rounded-full bg-blue-500"
+                                style={{ width: `${area.mastery}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="text-right text-sm font-bold text-slate-800">
+                            {area.mastery.toFixed(1)}%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Brain}
+                    title="暂无知识点数据"
+                    description="AI 分析错题后，这里会展示薄弱知识点、影响人数和掌握率。"
+                  />
+                )}
+              </Panel>
+
+              <Panel
+                title="最新学情洞察"
+                subtitle="可直接转为复习、出题或个别辅导动作"
+                className="xl:col-span-5"
+                action={
+                  <button
+                    onClick={ctx.openReviewSchedule}
+                    className="flex items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-blue-600"
+                  >
+                    更多
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                }
+              >
+                <div className="space-y-3">
+                  {insights.map((insight) => {
+                    const Icon = insight.icon;
+                    return (
+                      <button
+                        key={insight.title}
+                        onClick={insight.onClick}
+                        className="flex w-full items-start gap-3 rounded-lg bg-slate-50 px-4 py-3 text-left transition hover:bg-blue-50"
+                      >
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${insight.iconClassName}`}
+                        >
+                          <Icon className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <h4 className="truncate text-sm font-bold text-slate-900">
+                              {insight.title}
+                            </h4>
+                            <span className="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-bold text-slate-500">
+                              {insight.tag}
+                            </span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                            {insight.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  <button 
-                    onClick={() => setShowTeachingMaterials(true)}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group text-left"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center mr-4 transition-colors">
-                        <BookOpen className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 group-hover:text-blue-700">教学资料库</div>
-                        <div className="text-sm text-gray-500">管理您的知识库材料</div>
-                      </div>
-                    </div>
-                  </button>
+              </Panel>
+            </section>
 
-                  <button 
-                    onClick={() => setShowQuestionGenerator(true)}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all group text-left"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-purple-100 group-hover:bg-purple-200 rounded-lg flex items-center justify-center mr-4 transition-colors">
-                        <Brain className="w-5 h-5 text-purple-600" />
+            <Panel
+              title="我的班级"
+              subtitle={`共 ${ctx.classes.length} 个班级，${ctx.totalStudents} 名学生，${
+                ctx.totalAssignments + ctx.totalExams
+              } 份作业/试卷记录`}
+              action={
+                <ModuleButton
+                  icon={Plus}
+                  tone="dark"
+                  onClick={ctx.openCreateClass}
+                >
+                  创建班级
+                </ModuleButton>
+              }
+            >
+              {ctx.classes.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {ctx.classes.map((cls) => (
+                    <button
+                      key={cls.id}
+                      onClick={() =>
+                        void navigate({
+                          to: "/classes/$classId",
+                          params: { classId: cls.id.toString() },
+                        })
+                      }
+                      className="group rounded-lg border border-slate-100 bg-slate-50 px-4 py-4 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="truncate text-sm font-bold text-slate-900 group-hover:text-blue-700">
+                            {cls.name}
+                          </h4>
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                            {cls.description || "暂无班级描述"}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-500" />
                       </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 group-hover:text-purple-700">生成练习题</div>
-                        <div className="text-sm text-gray-500">基于错题库智能生成</div>
+                      <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <div className="font-bold text-slate-900">
+                            {cls._count.students}
+                          </div>
+                          <div className="text-slate-500">学生</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">
+                            {cls._count.assignments}
+                          </div>
+                          <div className="text-slate-500">作业</div>
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">
+                            {cls._count.exams}
+                          </div>
+                          <div className="text-slate-500">试卷</div>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => setShowDataAnalysis(true)}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all group text-left"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center mr-4 transition-colors">
-                        <BarChart3 className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 group-hover:text-green-700">数据分析</div>
-                        <div className="text-sm text-gray-500">查看详细表现洞察</div>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setShowReviewSchedule(true)}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all group text-left"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-orange-100 group-hover:bg-orange-200 rounded-lg flex items-center justify-center mr-4 transition-colors">
-                        <Calendar className="w-5 h-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 group-hover:text-orange-700">安排复习</div>
-                        <div className="text-sm text-gray-500">计划即将到来的课程</div>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setShowMistakeLibrary(true)}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-red-400 hover:bg-red-50 transition-all group text-left"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-red-100 group-hover:bg-red-200 rounded-lg flex items-center justify-center mr-4 transition-colors">
-                        <Target className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 group-hover:text-red-700">错题库</div>
-                        <div className="text-sm text-gray-500">访问错题收集与分析</div>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                  ))}
                 </div>
-              </div>
-            </div>
+              ) : (
+                <EmptyState
+                  icon={BookOpen}
+                  title="还没有班级"
+                  description="创建第一个班级后，就可以导入学生、上传作业并生成学情分析。"
+                />
+              )}
+            </Panel>
+          </>
+        );
+      }}
+    </DashboardShell>
+  );
+}
 
-          </div>
-        </div>
+function TrendDigest({ ctx }: { ctx: DashboardPageContext }) {
+  const latestPoint = ctx.trendChartData.at(-1);
+  const latestScore = latestPoint?.classAverage ?? ctx.averageScore;
+  const scores = ctx.trendChartData.map((point) => point.classAverage);
+  const highestScore = scores.length ? Math.max(...scores) : null;
+  const lowestScore = scores.length ? Math.min(...scores) : null;
+  const scoreRange =
+    highestScore !== null && lowestScore !== null
+      ? highestScore - lowestScore
+      : null;
+  const weakestArea = ctx.knowledgeAreas[0];
+  const declining = ctx.scoreDelta !== null && ctx.scoreDelta < 0;
+
+  const guidance = ctx.hasPerformanceData
+    ? [
+        {
+          title: declining ? "先稳住近期回落点" : "延续当前上升节奏",
+          text: declining
+            ? "建议从最近一次作业错题中抽 3-5 道同类题，安排一次短测回补。"
+            : "近期表现稳定，可以把优秀学生的解法整理为课堂讲评素材。",
+          icon: declining ? TrendingDown : TrendingUp,
+          tone: declining
+            ? "bg-rose-50 text-rose-700"
+            : "bg-emerald-50 text-emerald-700",
+        },
+        {
+          title: weakestArea ? `关注「${weakestArea.name}」` : "补充知识点归因",
+          text: weakestArea
+            ? `${weakestArea.affectedStudentCount} 名学生受影响，适合安排一次 10 分钟针对复习。`
+            : "错题关联知识点后，这里会自动提示最值得复习的内容。",
+          icon: Target,
+          tone: "bg-blue-50 text-blue-700",
+        },
+      ]
+    : [
+        {
+          title: "等待首批真实趋势",
+          text: "上传并分析作业或试卷后，这里会展示近期变化、峰值和波动区间。",
+          icon: Upload,
+          tone: "bg-blue-50 text-blue-700",
+        },
+        {
+          title: "先准备分析材料",
+          text: "建议先导入学生名单，再上传一批作业，排行和知识点会同步生成。",
+          icon: ClipboardCheck,
+          tone: "bg-emerald-50 text-emerald-700",
+        },
+      ];
+
+  return (
+    <div className="mt-5 border-t border-slate-100 pt-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <TrendDigestItem
+          label="最新均分"
+          value={latestScore === null ? "--" : latestScore.toFixed(1)}
+          caption={latestPoint?.date || "暂无日期"}
+          icon={Award}
+        />
+        <TrendDigestItem
+          label="阶段最高"
+          value={highestScore === null ? "--" : highestScore.toFixed(1)}
+          caption="近期峰值"
+          icon={TrendingUp}
+        />
+        <TrendDigestItem
+          label="波动区间"
+          value={scoreRange === null ? "--" : `${scoreRange.toFixed(1)}分`}
+          caption="高低分差"
+          icon={TrendingDown}
+        />
+        <TrendDigestItem
+          label="数据节点"
+          value={`${ctx.performanceTrends.length || ctx.trendChartData.length}`}
+          caption={ctx.hasPerformanceData ? "真实记录" : "预览节点"}
+          icon={ClipboardCheck}
+        />
       </div>
 
-      {/* Create Class Modal */}
-      <Suspense fallback={<LoadingSpinner />}>
-        <CreateClassModal
-          isOpen={isCreateClassModalOpen}
-          onClose={() => setIsCreateClassModalOpen(false)}
-        />
-      </Suspense>
-
-      {/* Teaching Materials Library */}
-      <ModalWrapper isOpen={showTeachingMaterials} onClose={() => setShowTeachingMaterials(false)} maxWidth="max-w-6xl">
-        <Suspense fallback={<LoadingSpinner />}>
-          <TeachingMaterialLibrary
-            onClose={() => setShowTeachingMaterials(false)}
-          />
-        </Suspense>
-      </ModalWrapper>
-
-      {/* Targeted Question Generator */}
-      <ModalWrapper isOpen={showQuestionGenerator} onClose={() => setShowQuestionGenerator(false)}>
-        <Suspense fallback={<LoadingSpinner />}>
-          <TargetedQuestionGenerator
-            onClose={() => setShowQuestionGenerator(false)}
-          />
-        </Suspense>
-      </ModalWrapper>
-
-      {/* Data Analysis */}
-      <ModalWrapper isOpen={showDataAnalysis} onClose={() => setShowDataAnalysis(false)} maxWidth="max-w-6xl">
-        <Suspense fallback={<LoadingSpinner />}>
-          <ClassDataAnalysis
-            onClose={() => setShowDataAnalysis(false)}
-          />
-        </Suspense>
-      </ModalWrapper>
-
-      {/* Mistake Library */}
-      <ModalWrapper isOpen={showMistakeLibrary} onClose={() => setShowMistakeLibrary(false)} maxWidth="max-w-5xl">
-        <Suspense fallback={<LoadingSpinner />}>
-          <MistakeLibrary
-            onClose={() => setShowMistakeLibrary(false)}
-          />
-        </Suspense>
-      </ModalWrapper>
-
-      {/* Review Schedule */}
-      <ModalWrapper isOpen={showReviewSchedule} onClose={() => setShowReviewSchedule(false)} maxWidth="max-w-4xl">
-        <Suspense fallback={<LoadingSpinner />}>
-          <ReviewSchedule
-            onClose={() => setShowReviewSchedule(false)}
-          />
-        </Suspense>
-      </ModalWrapper>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {guidance.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.title}
+              className="flex min-h-24 items-start gap-3 rounded-lg bg-slate-50 px-4 py-4 text-left transition hover:bg-blue-50"
+            >
+              <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${item.tone}`}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-slate-900">
+                  {item.title}
+                </div>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  {item.text}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
-    </RequireAuth>
+  );
+}
+
+function TrendDigestItem({
+  label,
+  value,
+  caption,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+  icon: typeof Award;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500">{label}</span>
+        <Icon className="h-4 w-4 text-blue-500" />
+      </div>
+      <div className="text-xl font-bold text-slate-950">{value}</div>
+      <div className="mt-1 truncate text-xs text-slate-500">{caption}</div>
+    </div>
   );
 }

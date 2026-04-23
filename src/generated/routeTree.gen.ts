@@ -7,14 +7,52 @@
 // Import Routes
 
 import { Route as rootRoute } from './../routes/__root'
+import { Route as SolutionsImport } from './../routes/solutions'
+import { Route as PricingImport } from './../routes/pricing'
+import { Route as HelpImport } from './../routes/help'
+import { Route as FeaturesImport } from './../routes/features'
 import { Route as R404Import } from './../routes/404'
 import { Route as IndexImport } from './../routes/index'
 import { Route as DashboardIndexImport } from './../routes/dashboard/index'
 import { Route as AuthIndexImport } from './../routes/auth/index'
+import { Route as DashboardStudentsImport } from './../routes/dashboard/students'
+import { Route as DashboardSettingsImport } from './../routes/dashboard/settings'
+import { Route as DashboardReportsImport } from './../routes/dashboard/reports'
+import { Route as DashboardMessagesImport } from './../routes/dashboard/messages'
+import { Route as DashboardLearningAnalysisImport } from './../routes/dashboard/learning-analysis'
+import { Route as DashboardKnowledgeMapImport } from './../routes/dashboard/knowledge-map'
+import { Route as DashboardGradesImport } from './../routes/dashboard/grades'
+import { Route as DashboardExamsImport } from './../routes/dashboard/exams'
+import { Route as DashboardClassesImport } from './../routes/dashboard/classes'
+import { Route as DashboardAssignmentsImport } from './../routes/dashboard/assignments'
 import { Route as ClassesClassIdIndexImport } from './../routes/classes/$classId/index'
 import { Route as ClassesClassIdStudentsStudentIdIndexImport } from './../routes/classes/$classId/students/$studentId/index'
 
 // Create/Update Routes
+
+const SolutionsRoute = SolutionsImport.update({
+  id: '/solutions',
+  path: '/solutions',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const PricingRoute = PricingImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const HelpRoute = HelpImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const FeaturesRoute = FeaturesImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const R404Route = R404Import.update({
   id: '/404',
@@ -37,6 +75,66 @@ const DashboardIndexRoute = DashboardIndexImport.update({
 const AuthIndexRoute = AuthIndexImport.update({
   id: '/auth/',
   path: '/auth/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardStudentsRoute = DashboardStudentsImport.update({
+  id: '/dashboard/students',
+  path: '/dashboard/students',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardSettingsRoute = DashboardSettingsImport.update({
+  id: '/dashboard/settings',
+  path: '/dashboard/settings',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardReportsRoute = DashboardReportsImport.update({
+  id: '/dashboard/reports',
+  path: '/dashboard/reports',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardMessagesRoute = DashboardMessagesImport.update({
+  id: '/dashboard/messages',
+  path: '/dashboard/messages',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardLearningAnalysisRoute = DashboardLearningAnalysisImport.update({
+  id: '/dashboard/learning-analysis',
+  path: '/dashboard/learning-analysis',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardKnowledgeMapRoute = DashboardKnowledgeMapImport.update({
+  id: '/dashboard/knowledge-map',
+  path: '/dashboard/knowledge-map',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardGradesRoute = DashboardGradesImport.update({
+  id: '/dashboard/grades',
+  path: '/dashboard/grades',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardExamsRoute = DashboardExamsImport.update({
+  id: '/dashboard/exams',
+  path: '/dashboard/exams',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardClassesRoute = DashboardClassesImport.update({
+  id: '/dashboard/classes',
+  path: '/dashboard/classes',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardAssignmentsRoute = DashboardAssignmentsImport.update({
+  id: '/dashboard/assignments',
+  path: '/dashboard/assignments',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -69,6 +167,104 @@ declare module '@tanstack/react-router' {
       path: '/404'
       fullPath: '/404'
       preLoaderRoute: typeof R404Import
+      parentRoute: typeof rootRoute
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesImport
+      parentRoute: typeof rootRoute
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpImport
+      parentRoute: typeof rootRoute
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingImport
+      parentRoute: typeof rootRoute
+    }
+    '/solutions': {
+      id: '/solutions'
+      path: '/solutions'
+      fullPath: '/solutions'
+      preLoaderRoute: typeof SolutionsImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/assignments': {
+      id: '/dashboard/assignments'
+      path: '/dashboard/assignments'
+      fullPath: '/dashboard/assignments'
+      preLoaderRoute: typeof DashboardAssignmentsImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/classes': {
+      id: '/dashboard/classes'
+      path: '/dashboard/classes'
+      fullPath: '/dashboard/classes'
+      preLoaderRoute: typeof DashboardClassesImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/exams': {
+      id: '/dashboard/exams'
+      path: '/dashboard/exams'
+      fullPath: '/dashboard/exams'
+      preLoaderRoute: typeof DashboardExamsImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/grades': {
+      id: '/dashboard/grades'
+      path: '/dashboard/grades'
+      fullPath: '/dashboard/grades'
+      preLoaderRoute: typeof DashboardGradesImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/knowledge-map': {
+      id: '/dashboard/knowledge-map'
+      path: '/dashboard/knowledge-map'
+      fullPath: '/dashboard/knowledge-map'
+      preLoaderRoute: typeof DashboardKnowledgeMapImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/learning-analysis': {
+      id: '/dashboard/learning-analysis'
+      path: '/dashboard/learning-analysis'
+      fullPath: '/dashboard/learning-analysis'
+      preLoaderRoute: typeof DashboardLearningAnalysisImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/messages': {
+      id: '/dashboard/messages'
+      path: '/dashboard/messages'
+      fullPath: '/dashboard/messages'
+      preLoaderRoute: typeof DashboardMessagesImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/reports': {
+      id: '/dashboard/reports'
+      path: '/dashboard/reports'
+      fullPath: '/dashboard/reports'
+      preLoaderRoute: typeof DashboardReportsImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/dashboard/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/students': {
+      id: '/dashboard/students'
+      path: '/dashboard/students'
+      fullPath: '/dashboard/students'
+      preLoaderRoute: typeof DashboardStudentsImport
       parentRoute: typeof rootRoute
     }
     '/auth/': {
@@ -107,6 +303,20 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/features': typeof FeaturesRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/solutions': typeof SolutionsRoute
+  '/dashboard/assignments': typeof DashboardAssignmentsRoute
+  '/dashboard/classes': typeof DashboardClassesRoute
+  '/dashboard/exams': typeof DashboardExamsRoute
+  '/dashboard/grades': typeof DashboardGradesRoute
+  '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
+  '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/messages': typeof DashboardMessagesRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/students': typeof DashboardStudentsRoute
   '/auth': typeof AuthIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/classes/$classId': typeof ClassesClassIdIndexRoute
@@ -116,6 +326,20 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/features': typeof FeaturesRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/solutions': typeof SolutionsRoute
+  '/dashboard/assignments': typeof DashboardAssignmentsRoute
+  '/dashboard/classes': typeof DashboardClassesRoute
+  '/dashboard/exams': typeof DashboardExamsRoute
+  '/dashboard/grades': typeof DashboardGradesRoute
+  '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
+  '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/messages': typeof DashboardMessagesRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/students': typeof DashboardStudentsRoute
   '/auth': typeof AuthIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/classes/$classId': typeof ClassesClassIdIndexRoute
@@ -126,6 +350,20 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/features': typeof FeaturesRoute
+  '/help': typeof HelpRoute
+  '/pricing': typeof PricingRoute
+  '/solutions': typeof SolutionsRoute
+  '/dashboard/assignments': typeof DashboardAssignmentsRoute
+  '/dashboard/classes': typeof DashboardClassesRoute
+  '/dashboard/exams': typeof DashboardExamsRoute
+  '/dashboard/grades': typeof DashboardGradesRoute
+  '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
+  '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/messages': typeof DashboardMessagesRoute
+  '/dashboard/reports': typeof DashboardReportsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/students': typeof DashboardStudentsRoute
   '/auth/': typeof AuthIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/classes/$classId/': typeof ClassesClassIdIndexRoute
@@ -137,6 +375,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/404'
+    | '/features'
+    | '/help'
+    | '/pricing'
+    | '/solutions'
+    | '/dashboard/assignments'
+    | '/dashboard/classes'
+    | '/dashboard/exams'
+    | '/dashboard/grades'
+    | '/dashboard/knowledge-map'
+    | '/dashboard/learning-analysis'
+    | '/dashboard/messages'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/students'
     | '/auth'
     | '/dashboard'
     | '/classes/$classId'
@@ -145,6 +397,20 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/404'
+    | '/features'
+    | '/help'
+    | '/pricing'
+    | '/solutions'
+    | '/dashboard/assignments'
+    | '/dashboard/classes'
+    | '/dashboard/exams'
+    | '/dashboard/grades'
+    | '/dashboard/knowledge-map'
+    | '/dashboard/learning-analysis'
+    | '/dashboard/messages'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/students'
     | '/auth'
     | '/dashboard'
     | '/classes/$classId'
@@ -153,6 +419,20 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/404'
+    | '/features'
+    | '/help'
+    | '/pricing'
+    | '/solutions'
+    | '/dashboard/assignments'
+    | '/dashboard/classes'
+    | '/dashboard/exams'
+    | '/dashboard/grades'
+    | '/dashboard/knowledge-map'
+    | '/dashboard/learning-analysis'
+    | '/dashboard/messages'
+    | '/dashboard/reports'
+    | '/dashboard/settings'
+    | '/dashboard/students'
     | '/auth/'
     | '/dashboard/'
     | '/classes/$classId/'
@@ -163,6 +443,20 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
+  FeaturesRoute: typeof FeaturesRoute
+  HelpRoute: typeof HelpRoute
+  PricingRoute: typeof PricingRoute
+  SolutionsRoute: typeof SolutionsRoute
+  DashboardAssignmentsRoute: typeof DashboardAssignmentsRoute
+  DashboardClassesRoute: typeof DashboardClassesRoute
+  DashboardExamsRoute: typeof DashboardExamsRoute
+  DashboardGradesRoute: typeof DashboardGradesRoute
+  DashboardKnowledgeMapRoute: typeof DashboardKnowledgeMapRoute
+  DashboardLearningAnalysisRoute: typeof DashboardLearningAnalysisRoute
+  DashboardMessagesRoute: typeof DashboardMessagesRoute
+  DashboardReportsRoute: typeof DashboardReportsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardStudentsRoute: typeof DashboardStudentsRoute
   AuthIndexRoute: typeof AuthIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ClassesClassIdIndexRoute: typeof ClassesClassIdIndexRoute
@@ -172,6 +466,20 @@ export interface RootRouteChildren {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R404Route: R404Route,
+  FeaturesRoute: FeaturesRoute,
+  HelpRoute: HelpRoute,
+  PricingRoute: PricingRoute,
+  SolutionsRoute: SolutionsRoute,
+  DashboardAssignmentsRoute: DashboardAssignmentsRoute,
+  DashboardClassesRoute: DashboardClassesRoute,
+  DashboardExamsRoute: DashboardExamsRoute,
+  DashboardGradesRoute: DashboardGradesRoute,
+  DashboardKnowledgeMapRoute: DashboardKnowledgeMapRoute,
+  DashboardLearningAnalysisRoute: DashboardLearningAnalysisRoute,
+  DashboardMessagesRoute: DashboardMessagesRoute,
+  DashboardReportsRoute: DashboardReportsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardStudentsRoute: DashboardStudentsRoute,
   AuthIndexRoute: AuthIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ClassesClassIdIndexRoute: ClassesClassIdIndexRoute,
@@ -191,6 +499,20 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/404",
+        "/features",
+        "/help",
+        "/pricing",
+        "/solutions",
+        "/dashboard/assignments",
+        "/dashboard/classes",
+        "/dashboard/exams",
+        "/dashboard/grades",
+        "/dashboard/knowledge-map",
+        "/dashboard/learning-analysis",
+        "/dashboard/messages",
+        "/dashboard/reports",
+        "/dashboard/settings",
+        "/dashboard/students",
         "/auth/",
         "/dashboard/",
         "/classes/$classId/",
@@ -202,6 +524,48 @@ export const routeTree = rootRoute
     },
     "/404": {
       "filePath": "404.tsx"
+    },
+    "/features": {
+      "filePath": "features.tsx"
+    },
+    "/help": {
+      "filePath": "help.tsx"
+    },
+    "/pricing": {
+      "filePath": "pricing.tsx"
+    },
+    "/solutions": {
+      "filePath": "solutions.tsx"
+    },
+    "/dashboard/assignments": {
+      "filePath": "dashboard/assignments.tsx"
+    },
+    "/dashboard/classes": {
+      "filePath": "dashboard/classes.tsx"
+    },
+    "/dashboard/exams": {
+      "filePath": "dashboard/exams.tsx"
+    },
+    "/dashboard/grades": {
+      "filePath": "dashboard/grades.tsx"
+    },
+    "/dashboard/knowledge-map": {
+      "filePath": "dashboard/knowledge-map.tsx"
+    },
+    "/dashboard/learning-analysis": {
+      "filePath": "dashboard/learning-analysis.tsx"
+    },
+    "/dashboard/messages": {
+      "filePath": "dashboard/messages.tsx"
+    },
+    "/dashboard/reports": {
+      "filePath": "dashboard/reports.tsx"
+    },
+    "/dashboard/settings": {
+      "filePath": "dashboard/settings.tsx"
+    },
+    "/dashboard/students": {
+      "filePath": "dashboard/students.tsx"
     },
     "/auth/": {
       "filePath": "auth/index.tsx"

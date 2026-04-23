@@ -6,6 +6,8 @@
 
 [中文](README.md) | [English](README.en.md)
 
+**在线体验：** [https://edureview.lililaoshu.space](https://edureview.lililaoshu.space)
+
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![TypeScript 5](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![tRPC v11](https://img.shields.io/badge/tRPC-v11-398CCB?logo=trpc)
