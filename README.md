@@ -23,6 +23,8 @@
 > 面向 K12 教育场景，支持教师、家长双角色，通过多模型 AI 实现作业智能批改与学情洞察。
 
 ---
+<img width="1518" height="855" alt="image" src="https://github.com/user-attachments/assets/1ae64895-dd33-4325-9042-9d4da2470fba" />
+
 
 ## 目录
 
