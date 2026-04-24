@@ -35,7 +35,7 @@ type Solution = {
   scenarios: Array<{ icon: LucideIcon; title: string; text: string }>;
 };
 
-const solutions: Solution[] = [
+export const solutions: Solution[] = [
   {
     key: "k12",
     tab: "K12 教育",
@@ -162,7 +162,7 @@ const solutions: Solution[] = [
     description:
       "面向职业院校和技能培训场景，把任务练习、理论测验和实训反馈纳入同一套分析流程，帮助教师判断学生是否真正掌握关键技能点。",
     image:
-      "https://images.unsplash.com/photo-1581091870622-1e7e196fd816?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1400&q=80",
     bullets: [
       "按技能模块归因理论与实操薄弱点",
       "沉淀任务训练过程中的常见失误",

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import {
@@ -8,6 +8,8 @@ import {
   Brain,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
   FileBarChart,
   FileText,
@@ -23,6 +25,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuthStore } from "~/stores/authStore";
 import { useTRPC } from "~/trpc/react";
+
+// Reuse solution data from solutions page
+import { solutions } from "./solutions";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -130,8 +135,41 @@ function Home() {
     },
   ];
 
-  const solutionTabs = ["K12 教师", "培训机构", "学校教研", "家校沟通"];
-  const pricingPlans = [
+  // Solution carousel state (reuses solutions[] from solutions.tsx)
+  const [activeSolutionKey, setActiveSolutionKey] = useState<"k12" | "higher" | "vocational" | "institution">("k12");
+  const [isPaused, setIsPaused] = useState(false);
+  const carouselRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const activeSolution = solutions.find((s) => s.key === activeSolutionKey) ?? solutions[0]!;
+
+  const startCarousel = () => {
+    if (carouselRef.current) clearInterval(carouselRef.current);
+    carouselRef.current = setInterval(() => {
+      setActiveSolutionKey((prev) => {
+        const idx = solutions.findIndex((s) => s.key === prev);
+        return solutions[(idx + 1) % solutions.length]!.key;
+      });
+    }, 5000);
+  };
+
+  useEffect(() => {
+    if (!isPaused) startCarousel();
+    return () => { if (carouselRef.current) clearInterval(carouselRef.current); };
+  }, [isPaused]);
+
+  const prevSolution = () => {
+    const idx = solutions.findIndex((s) => s.key === activeSolutionKey);
+    setActiveSolutionKey(solutions[(idx - 1 + solutions.length) % solutions.length]!.key);
+    if (!isPaused) { startCarousel(); }
+  };
+
+  const nextSolution = () => {
+    const idx = solutions.findIndex((s) => s.key === activeSolutionKey);
+    setActiveSolutionKey(solutions[(idx + 1) % solutions.length]!.key);
+    if (!isPaused) { startCarousel(); }
+  };
+
+    const pricingPlans = [
     {
       name: "教师体验",
       description: "面向个人教师的基础教学分析能力",
@@ -330,7 +368,12 @@ function Home() {
           </div>
         </section>
 
-        <section id="solutions" className="bg-slate-50 py-20">
+        <section
+          id="solutions"
+          className="bg-slate-50 py-20"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeader
               eyebrow="解决方案"
@@ -338,59 +381,104 @@ function Home() {
               description="从一线课堂、培训机构到学校教研，围绕作业数据沉淀可复用的教学洞察。"
             />
             <div className="mt-8 flex flex-wrap justify-center gap-2">
-              {solutionTabs.map((tab, index) => (
-                <button
-                  key={tab}
-                  className={`rounded-md px-5 py-2 text-sm font-bold ${
-                    index === 0
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-600 ring-1 ring-slate-200"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+              {solutions.map((solution) => {
+                const isActive = solution.key === activeSolutionKey;
+                return (
+                  <button
+                    key={solution.key}
+                    onClick={() => {
+                      setActiveSolutionKey(solution.key);
+                      if (!isPaused) startCarousel();
+                    }}
+                    className={`rounded-md px-5 py-2 text-sm font-bold transition ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                        : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-white hover:text-blue-600"
+                    }`}
+                  >
+                    {solution.tab}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="mt-10 grid overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-[0.9fr_1.1fr]">
-              <div
-                className="min-h-[320px] bg-cover bg-center"
-                style={{
-                  backgroundImage:
-                    "url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=80')",
-                }}
-              />
-              <div className="p-8 lg:p-10">
-                <div className="text-sm font-bold text-blue-600">
-                  K12 教育解决方案
-                </div>
-                <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
-                  覆盖作业、试卷、错题和家校沟通的完整闭环
-                </h3>
-                <p className="mt-4 leading-7 text-slate-600">
-                  教师上传日常作业和阶段测验，系统自动生成班级趋势、知识点掌握和学生画像，帮助老师更快定位下一节课该讲什么。
-                </p>
-                <ul className="mt-6 space-y-3">
-                  {[
-                    "作业批改结果自动沉淀到学生画像",
-                    "错题按知识点和题型归因",
-                    "班级报告可用于复盘与家校沟通",
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <Check className="h-5 w-5 text-blue-600" />
-                      <span className="text-sm font-semibold text-slate-700">
-                        {item}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => void handleDemoLogin()}
-                  className="mt-8 inline-flex h-11 items-center gap-2 rounded-md border border-blue-200 px-5 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
+            <div className="relative mt-10">
+              {/* Left arrow */}
+              <button
+                onClick={prevSolution}
+                aria-label="上一个方案"
+                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-md ring-1 ring-slate-200 transition hover:bg-white hover:text-blue-600"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              {/* Right arrow */}
+              <button
+                onClick={nextSolution}
+                aria-label="下一个方案"
+                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-md ring-1 ring-slate-200 transition hover:bg-white hover:text-blue-600"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {/* Carousel content */}
+              <div className="grid overflow-hidden rounded-lg border border-slate-200 bg-white lg:grid-cols-[0.9fr_1.1fr]">
+                <div
+                  className="relative min-h-[320px] bg-cover bg-center"
+                  style={{ backgroundImage: `url('${activeSolution.image}')` }}
                 >
-                  了解体验
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                  <div className="absolute inset-0 bg-slate-950/10" />
+                  <div className="absolute bottom-5 left-5 rounded-md bg-white/90 px-3 py-2 text-sm font-bold text-slate-900 shadow-sm backdrop-blur">
+                    {activeSolution.tab}
+                  </div>
+                </div>
+                <div className="p-8 lg:p-10">
+                  <div className="text-sm font-bold text-blue-600">
+                    {activeSolution.eyebrow}
+                  </div>
+                  <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">
+                    {activeSolution.title}
+                  </h3>
+                  <p className="mt-4 leading-7 text-slate-600">
+                    {activeSolution.description}
+                  </p>
+                  <ul className="mt-6 space-y-3">
+                    {activeSolution.bullets.map((item) => (
+                      <li key={item} className="flex items-center gap-3">
+                        <Check className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-semibold text-slate-700">
+                          {item}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => void navigate({ to: "/solutions" })}
+                    className="mt-8 inline-flex h-11 items-center gap-2 rounded-md border border-blue-200 px-5 text-sm font-bold text-blue-600 transition hover:bg-blue-50"
+                  >
+                    查看完整方案
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Dot indicators */}
+              <div className="mt-4 flex justify-center gap-2">
+                {solutions.map((solution) => (
+                  <button
+                    key={solution.key}
+                    onClick={() => {
+                      setActiveSolutionKey(solution.key);
+                      if (!isPaused) startCarousel();
+                    }}
+                    className={`h-2 rounded-full transition-all ${
+                      solution.key === activeSolutionKey
+                        ? "w-6 bg-blue-600"
+                        : "w-2 bg-slate-300 hover:bg-slate-400"
+                    }`}
+                    aria-label={`切换到 ${solution.tab}`}
+                  />
+                ))}
               </div>
             </div>
           </div>
