@@ -64,21 +64,6 @@ const CreateClassModal = lazy(() =>
     default: m.CreateClassModal,
   })),
 );
-const TeachingMaterialLibrary = lazy(() =>
-  import("~/components/TeachingMaterialLibrary").then((m) => ({
-    default: m.TeachingMaterialLibrary,
-  })),
-);
-const TargetedQuestionGenerator = lazy(() =>
-  import("~/components/TargetedQuestionGenerator").then((m) => ({
-    default: m.TargetedQuestionGenerator,
-  })),
-);
-const ClassDataAnalysis = lazy(() =>
-  import("~/components/ClassDataAnalysis").then((m) => ({
-    default: m.ClassDataAnalysis,
-  })),
-);
 const ReviewSchedule = lazy(() =>
   import("~/components/ReviewSchedule").then((m) => ({
     default: m.ReviewSchedule,
@@ -95,6 +80,8 @@ export type DashboardNavKey =
   | "exams"
   | "knowledge-map"
   | "mistakes"
+  | "materials"
+  | "question-generator"
   | "students"
   | "classes"
   | "reports"
@@ -148,6 +135,9 @@ export type DashboardPageContext = {
   openUploadForSelectedClass: () => void;
   openSelectedStudent: (studentId: number) => void;
   openCreateClass: () => void;
+  openStudentsDashboard: () => void;
+  openClassesDashboard: () => void;
+  openReportsDashboard: () => void;
   openTeachingMaterials: () => void;
   openQuestionGenerator: () => void;
   openDataAnalysis: () => void;
@@ -164,6 +154,8 @@ type DashboardShellProps = {
   selectedClassIdOverride?: number | null;
   onSelectedClassChange?: (classId: number) => void;
   showDateRangeBadge?: boolean;
+  showClassSelector?: boolean;
+  showCreateClassButton?: boolean;
 };
 
 const navItems: Array<{
@@ -215,6 +207,18 @@ const navItems: Array<{
     href: "/dashboard/mistakes",
   },
   {
+    key: "materials",
+    label: "教学资料",
+    icon: LibraryBig,
+    href: "/dashboard/materials",
+  },
+  {
+    key: "question-generator",
+    label: "智能出题",
+    icon: Sparkles,
+    href: "/dashboard/question-generator",
+  },
+  {
     key: "students",
     label: "学生管理",
     icon: Users,
@@ -261,6 +265,8 @@ export function DashboardShell({
   selectedClassIdOverride,
   onSelectedClassChange,
   showDateRangeBadge = true,
+  showClassSelector = true,
+  showCreateClassButton = true,
 }: DashboardShellProps) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -271,9 +277,6 @@ export function DashboardShell({
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
-  const [showTeachingMaterials, setShowTeachingMaterials] = useState(false);
-  const [showQuestionGenerator, setShowQuestionGenerator] = useState(false);
-  const [showDataAnalysis, setShowDataAnalysis] = useState(false);
   const [showReviewSchedule, setShowReviewSchedule] = useState(false);
 
   useEffect(() => {
@@ -500,9 +503,30 @@ export function DashboardShell({
     openUploadForSelectedClass,
     openSelectedStudent,
     openCreateClass: () => setIsCreateClassModalOpen(true),
-    openTeachingMaterials: () => setShowTeachingMaterials(true),
-    openQuestionGenerator: () => setShowQuestionGenerator(true),
-    openDataAnalysis: () => setShowDataAnalysis(true),
+    openStudentsDashboard: () => {
+      void navigate({ to: "/dashboard/students" });
+    },
+    openClassesDashboard: () => {
+      void navigate({ to: "/dashboard/classes" });
+    },
+    openReportsDashboard: () => {
+      void navigate({ to: "/dashboard/reports" });
+    },
+    openTeachingMaterials: () => {
+      void navigate({ to: "/dashboard/materials" });
+    },
+    openQuestionGenerator: () => {
+      void navigate({
+        to: "/dashboard/question-generator",
+        search: selectedClass ? { classId: selectedClass.id } : {},
+      });
+    },
+    openDataAnalysis: () => {
+      void navigate({
+        to: "/dashboard/learning-analysis",
+        search: selectedClass ? { classId: selectedClass.id } : {},
+      });
+    },
     openMistakeLibrary: () => {
       void navigate({
         to: "/dashboard/mistakes",
@@ -612,25 +636,29 @@ export function DashboardShell({
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <label className="relative min-w-44">
-                  <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <select
-                    value={selectedClass?.id || ""}
-                    disabled={classes.length === 0}
-                    onChange={(event) =>
-                      handleHeaderClassChange(Number(event.target.value))
-                    }
-                    className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-10 pr-9 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:text-slate-400"
-                  >
-                    {classes.length === 0 && <option value="">暂无班级</option>}
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </label>
+                {showClassSelector ? (
+                  <label className="relative min-w-44">
+                    <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <select
+                      value={selectedClass?.id || ""}
+                      disabled={classes.length === 0}
+                      onChange={(event) =>
+                        handleHeaderClassChange(Number(event.target.value))
+                      }
+                      className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-10 pr-9 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:text-slate-400"
+                    >
+                      {classes.length === 0 && (
+                        <option value="">暂无班级</option>
+                      )}
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </label>
+                ) : null}
 
                 {showDateRangeBadge ? (
                   <div className="flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm">
@@ -639,13 +667,15 @@ export function DashboardShell({
                   </div>
                 ) : null}
 
-                <button
-                  onClick={() => setIsCreateClassModalOpen(true)}
-                  className="flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  新建班级
-                </button>
+                {showCreateClassButton ? (
+                  <button
+                    onClick={() => setIsCreateClassModalOpen(true)}
+                    className="flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    新建班级
+                  </button>
+                ) : null}
 
                 <a
                   className="relative flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:text-slate-900"
@@ -683,40 +713,6 @@ export function DashboardShell({
             onClose={() => setIsCreateClassModalOpen(false)}
           />
         </Suspense>
-
-        <ModalWrapper
-          isOpen={showTeachingMaterials}
-          onClose={() => setShowTeachingMaterials(false)}
-          maxWidth="max-w-6xl"
-        >
-          <Suspense fallback={<LoadingSpinner />}>
-            <TeachingMaterialLibrary
-              onClose={() => setShowTeachingMaterials(false)}
-            />
-          </Suspense>
-        </ModalWrapper>
-
-        <ModalWrapper
-          isOpen={showQuestionGenerator}
-          onClose={() => setShowQuestionGenerator(false)}
-        >
-          <Suspense fallback={<LoadingSpinner />}>
-            <TargetedQuestionGenerator
-              classId={selectedClass?.id}
-              onClose={() => setShowQuestionGenerator(false)}
-            />
-          </Suspense>
-        </ModalWrapper>
-
-        <ModalWrapper
-          isOpen={showDataAnalysis}
-          onClose={() => setShowDataAnalysis(false)}
-          maxWidth="max-w-6xl"
-        >
-          <Suspense fallback={<LoadingSpinner />}>
-            <ClassDataAnalysis onClose={() => setShowDataAnalysis(false)} />
-          </Suspense>
-        </ModalWrapper>
 
         <ModalWrapper
           isOpen={showReviewSchedule}

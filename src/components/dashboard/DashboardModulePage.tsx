@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -28,7 +28,14 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { AddStudentModal } from "~/components/AddStudentModal";
+import { ConfirmDialog } from "~/components/ConfirmDialog";
+import { GroupSelectionModal } from "~/components/GroupSelectionModal";
 import { ModalWrapper } from "~/components/ModalWrapper";
+import {
+  ClassStudents,
+  type ClassStudentRecord,
+} from "~/components/class/ClassStudents";
 import {
   DashboardShell,
   EmptyState,
@@ -43,7 +50,9 @@ import {
   type DashboardNavKey,
   type DashboardPageContext,
 } from "~/components/dashboard/DashboardShell";
+import { useToast } from "~/components/Toast";
 import { useTRPC } from "~/trpc/react";
+import { getErrorMessage } from "~/utils/trpcError";
 
 const ReportGenerationModal = lazy(() =>
   import("~/components/ReportGenerationModal").then((m) => ({
@@ -121,6 +130,7 @@ export function DashboardModulePage({ module }: { module: DashboardModule }) {
       title={copy.title}
       subtitle={copy.subtitle}
       actions={(ctx) => <ModuleActions module={module} ctx={ctx} />}
+      showCreateClassButton={module !== "classes"}
     >
       {(ctx) => <ModuleContent module={module} ctx={ctx} />}
     </DashboardShell>
@@ -134,65 +144,105 @@ function ModuleActions({
   module: DashboardModule;
   ctx: DashboardPageContext;
 }) {
-  if (module === "classes") {
-    return (
-      <>
+  switch (module) {
+    case "learning-analysis":
+      return (
+        <>
+          <ModuleButton icon={Target} onClick={ctx.openMistakeLibrary}>
+            错题库
+          </ModuleButton>
+          <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
+            智能出题
+          </ModuleButton>
+        </>
+      );
+    case "grades":
+      return (
+        <>
+          <ModuleButton icon={Users} onClick={ctx.openStudentsDashboard}>
+            学生管理
+          </ModuleButton>
+          <ModuleButton icon={PieChart} onClick={ctx.openReportsDashboard}>
+            报告中心
+          </ModuleButton>
+        </>
+      );
+    case "assignments":
+      return (
+        <>
+          <ModuleButton icon={Target} onClick={ctx.openMistakeLibrary}>
+            错题库
+          </ModuleButton>
+          <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
+            智能出题
+          </ModuleButton>
+        </>
+      );
+    case "exams":
+      return (
+        <>
+          <ModuleButton icon={BarChart3} onClick={ctx.openDataAnalysis}>
+            学情分析
+          </ModuleButton>
+          <ModuleButton icon={PieChart} onClick={ctx.openReportsDashboard}>
+            报告中心
+          </ModuleButton>
+        </>
+      );
+    case "knowledge-map":
+      return (
+        <>
+          <ModuleButton icon={LibraryBig} onClick={ctx.openTeachingMaterials}>
+            教学资料
+          </ModuleButton>
+          <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
+            智能出题
+          </ModuleButton>
+        </>
+      );
+    case "students":
+      return (
+        <>
+          <ModuleButton icon={BarChart3} onClick={ctx.openDataAnalysis}>
+            学情分析
+          </ModuleButton>
+          <ModuleButton icon={BookOpen} onClick={ctx.openSelectedClass}>
+            班级工作台
+          </ModuleButton>
+        </>
+      );
+    case "classes":
+      return (
         <ModuleButton icon={Plus} tone="primary" onClick={ctx.openCreateClass}>
           新建班级
         </ModuleButton>
-        <ModuleButton icon={BookOpen} onClick={ctx.openSelectedClass}>
-          进入班级
+      );
+    case "reports":
+      return (
+        <>
+          <ModuleButton icon={BarChart3} onClick={ctx.openDataAnalysis}>
+            学情分析
+          </ModuleButton>
+          <ModuleButton icon={Users} onClick={ctx.openStudentsDashboard}>
+            学生管理
+          </ModuleButton>
+        </>
+      );
+    case "messages":
+      return (
+        <ModuleButton icon={Clock} onClick={ctx.openReviewSchedule}>
+          复习安排
         </ModuleButton>
-      </>
-    );
-  }
-
-  if (module === "reports") {
-    return (
-      <>
-        <ModuleButton
-          icon={PieChart}
-          tone="primary"
-          onClick={ctx.openDataAnalysis}
-        >
-          查看分析
+      );
+    case "settings":
+      return (
+        <ModuleButton icon={BookOpen} onClick={ctx.openClassesDashboard}>
+          班级管理
         </ModuleButton>
-        <ModuleButton icon={FileText} onClick={ctx.openSelectedClass}>
-          进入报告
-        </ModuleButton>
-      </>
-    );
+      );
+    default:
+      return null;
   }
-
-  if (module === "settings") {
-    return (
-      <ModuleButton icon={ShieldCheck} onClick={ctx.openSelectedClass}>
-        班级权限
-      </ModuleButton>
-    );
-  }
-
-  if (module === "messages") {
-    return (
-      <ModuleButton icon={Clock} onClick={ctx.openReviewSchedule}>
-        复习安排
-      </ModuleButton>
-    );
-  }
-
-  return (
-    <>
-      <ModuleButton icon={BarChart3} onClick={ctx.openDataAnalysis}>
-        深度分析
-      </ModuleButton>
-      <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
-        智能出题
-      </ModuleButton>
-      <ModuleButton icon={Upload} onClick={ctx.openSelectedClass}>
-        进入班级
-      </ModuleButton>
-    </>
-  );
 }
 
 function ModuleContent({
@@ -204,7 +254,13 @@ function ModuleContent({
 }) {
   const trpc = useTRPC();
   const navigate = useNavigate();
+  const toast = useToast();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] =
+    useState<ClassStudentRecord | null>(null);
 
   const studentsQuery = useQuery({
     ...trpc.getClassStudents.queryOptions({
@@ -214,7 +270,29 @@ function ModuleContent({
     enabled: !!ctx.authToken && !!ctx.selectedClassId,
   });
 
+  const groupsQuery = useQuery({
+    ...trpc.getClassGroups.queryOptions({
+      authToken: ctx.authToken || "",
+      classId: ctx.selectedClassId,
+    }),
+    enabled: module === "students" && !!ctx.authToken && !!ctx.selectedClassId,
+  });
+
+  const deleteStudentMutation = useMutation(
+    trpc.deleteStudentFromClass.mutationOptions(),
+  );
+  const toggleSpecialAttentionMutation = useMutation(
+    trpc.toggleSpecialAttention.mutationOptions(),
+  );
+  const assignStudentToGroupMutation = useMutation(
+    trpc.assignStudentToGroup.mutationOptions(),
+  );
+  const createStudentGroupMutation = useMutation(
+    trpc.createStudentGroup.mutationOptions(),
+  );
+
   const students = studentsQuery.data?.students || [];
+  const groups = groupsQuery.data?.groups || [];
   const totalMistakes = students.reduce(
     (sum, student) =>
       sum + student._count.mistakes + student._count.examMistakes,
@@ -227,6 +305,91 @@ function ModuleContent({
     students.length > 0
       ? (ctx.selectedClass?._count.assignments || 0) / students.length
       : null;
+
+  const handleDeleteStudent = (student: ClassStudentRecord) => {
+    setSelectedStudent(student);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteStudent = async () => {
+    if (!selectedStudent || !ctx.authToken) return;
+
+    try {
+      await deleteStudentMutation.mutateAsync({
+        authToken: ctx.authToken,
+        studentId: selectedStudent.id,
+      });
+      toast.success(`已删除学生 ${selectedStudent.name}`);
+      setShowDeleteConfirm(false);
+      setSelectedStudent(null);
+      void Promise.all([studentsQuery.refetch(), groupsQuery.refetch()]);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleSpecialAttention = async (student: ClassStudentRecord) => {
+    if (!ctx.authToken) return;
+
+    try {
+      const result = await toggleSpecialAttentionMutation.mutateAsync({
+        authToken: ctx.authToken,
+        studentId: student.id,
+      });
+      const actionText = result.action === "added" ? "加入" : "取消";
+      toast.success(`已${actionText}重点关注：${student.name}`);
+      void studentsQuery.refetch();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const handleAssignToGroup = async (
+    studentId: number,
+    groupId: number | null,
+  ) => {
+    if (!ctx.authToken) return;
+
+    try {
+      const result = await assignStudentToGroupMutation.mutateAsync({
+        authToken: ctx.authToken,
+        studentId,
+        groupId,
+      });
+      const actionText =
+        result.action === "assigned" ? "分配到小组" : "移出小组";
+      toast.success(
+        `学生 ${result.student.name} 已${actionText}${result.student.groupName ? `：${result.student.groupName}` : ""}`,
+      );
+      await Promise.all([studentsQuery.refetch(), groupsQuery.refetch()]);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+      throw error;
+    }
+  };
+
+  const handleCreateGroup = async (
+    name: string,
+    description?: string,
+    color: string = "blue",
+  ) => {
+    if (!ctx.authToken) return;
+
+    try {
+      const result = await createStudentGroupMutation.mutateAsync({
+        authToken: ctx.authToken,
+        classId: ctx.selectedClassId,
+        name,
+        description,
+        color,
+      });
+      toast.success(`已创建小组 ${result.group.name}`);
+      await groupsQuery.refetch();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
+      throw error;
+    }
+  };
 
   const gradeBands = useMemo(() => {
     const bands = [
@@ -294,7 +457,9 @@ function ModuleContent({
 
   return (
     <>
-      {module !== "classes" && module !== "settings" ? commonMetrics : null}
+      {module !== "classes" && module !== "settings" && module !== "students"
+        ? commonMetrics
+        : null}
 
       {module === "learning-analysis" ? (
         <LearningAnalysis ctx={ctx} gradeBands={gradeBands} />
@@ -312,6 +477,16 @@ function ModuleContent({
           ctx={ctx}
           students={students}
           isLoading={studentsQuery.isLoading}
+          groups={groups}
+          onShowAddStudentModal={() => setShowAddStudentModal(true)}
+          onDeleteStudent={handleDeleteStudent}
+          onSpecialAttention={(student) => {
+            void handleSpecialAttention(student);
+          }}
+          onAddToGroup={(student) => {
+            setSelectedStudent(student);
+            setShowGroupModal(true);
+          }}
         />
       ) : null}
       {module === "classes" ? (
@@ -344,6 +519,65 @@ function ModuleContent({
             />
           </Suspense>
         </ModalWrapper>
+      ) : null}
+
+      {module === "students" && ctx.selectedClass ? (
+        <>
+          <AddStudentModal
+            isOpen={showAddStudentModal}
+            onClose={() => setShowAddStudentModal(false)}
+            classId={ctx.selectedClass.id}
+            onSuccess={() => {
+              void Promise.all([
+                studentsQuery.refetch(),
+                groupsQuery.refetch(),
+              ]);
+              toast.success("学生添加成功");
+            }}
+          />
+
+          <ConfirmDialog
+            isOpen={showDeleteConfirm}
+            title="确认删除学生"
+            message={
+              <>
+                您确定要删除学生{" "}
+                <span className="font-semibold text-slate-900">
+                  {selectedStudent?.name}
+                </span>{" "}
+                吗？
+                <p className="mt-2 text-sm text-red-600">
+                  此操作会永久删除该学生的作业、试卷和错题记录，无法恢复。
+                </p>
+              </>
+            }
+            confirmLabel="确认删除"
+            cancelLabel="取消"
+            destructive
+            isLoading={deleteStudentMutation.isPending}
+            onConfirm={() => {
+              void confirmDeleteStudent();
+            }}
+            onCancel={() => {
+              setShowDeleteConfirm(false);
+              setSelectedStudent(null);
+            }}
+          />
+
+          {selectedStudent ? (
+            <GroupSelectionModal
+              isOpen={showGroupModal}
+              onClose={() => {
+                setShowGroupModal(false);
+                setSelectedStudent(null);
+              }}
+              student={selectedStudent}
+              groups={groups}
+              onAssignToGroup={handleAssignToGroup}
+              onCreateGroup={handleCreateGroup}
+            />
+          ) : null}
+        </>
       ) : null}
     </>
   );
@@ -688,104 +922,114 @@ function KnowledgeMap({ ctx }: { ctx: DashboardPageContext }) {
 function StudentManagement({
   ctx,
   students,
+  groups,
   isLoading,
+  onShowAddStudentModal,
+  onDeleteStudent,
+  onSpecialAttention,
+  onAddToGroup,
 }: {
   ctx: DashboardPageContext;
-  students: Array<{
+  students: ClassStudentRecord[];
+  groups: Array<{
     id: number;
     name: string;
-    studentId: string | null;
-    specialAttention: boolean;
-    group?: { name: string } | null;
-    _count: {
-      assignments: number;
-      exams: number;
-      mistakes: number;
-      examMistakes: number;
-    };
+    _count: { students: number };
   }>;
   isLoading: boolean;
+  onShowAddStudentModal: () => void;
+  onDeleteStudent: (student: ClassStudentRecord) => void;
+  onSpecialAttention: (student: ClassStudentRecord) => void;
+  onAddToGroup: (student: ClassStudentRecord) => void;
 }) {
+  const focusedCount = students.filter(
+    (student) => student.specialAttention,
+  ).length;
+  const groupedCount = students.filter((student) => student.group).length;
+  const totalRecords = students.reduce(
+    (sum, student) => sum + student._count.assignments + student._count.exams,
+    0,
+  );
+
   if (isLoading) {
     return <EmptyState icon={Users} title="学生数据加载中" description=" " />;
   }
 
   return (
-    <Panel
-      title="学生名单"
-      subtitle={
-        ctx.selectedClass ? `${ctx.selectedClass.name} 当前学生` : "暂无班级"
-      }
-      action={
-        <button
-          onClick={ctx.openSelectedClass}
-          className="flex items-center gap-1 text-xs font-bold text-blue-600"
-        >
-          管理学生
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      }
-    >
-      {students.length > 0 ? (
-        <div className="overflow-hidden rounded-lg border border-slate-100">
-          <table className="w-full table-fixed text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">学生</th>
-                <th className="w-28 px-4 py-3 text-left">学号</th>
-                <th className="w-28 px-4 py-3 text-left">小组</th>
-                <th className="w-24 px-4 py-3 text-right">作业</th>
-                <th className="w-24 px-4 py-3 text-right">试卷</th>
-                <th className="w-24 px-4 py-3 text-right">错题</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {students.map((student) => (
-                <tr
-                  key={student.id}
-                  onClick={() => ctx.openSelectedStudent(student.id)}
-                  className="cursor-pointer hover:bg-blue-50/60"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">
-                        {student.name}
-                      </span>
-                      {student.specialAttention ? (
-                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-bold text-orange-600">
-                          关注
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {student.studentId || "--"}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {student.group?.name || "未分组"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-700">
-                    {student._count.assignments}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-700">
-                    {student._count.exams}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-700">
-                    {student._count.mistakes + student._count.examMistakes}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState
-          icon={UserPlus}
-          title="暂无学生"
-          description="进入班级后可以添加学生或批量导入名单。"
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div className="xl:col-span-8">
+        <ClassStudents
+          students={students}
+          onStudentClick={ctx.openSelectedStudent}
+          onDeleteStudent={onDeleteStudent}
+          onSpecialAttention={onSpecialAttention}
+          onAddToGroup={onAddToGroup}
+          onShowAddStudentModal={onShowAddStudentModal}
         />
-      )}
-    </Panel>
+      </div>
+
+      <div className="space-y-6 xl:col-span-4">
+        <Panel
+          title="管理概览"
+          subtitle={
+            ctx.selectedClass
+              ? `${ctx.selectedClass.name} 当前学生状态`
+              : "暂无班级"
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <CompactStat
+              label="学生总数"
+              value={`${students.length}`}
+              icon={Users}
+            />
+            <CompactStat
+              label="已分组"
+              value={`${groupedCount}`}
+              icon={BookOpen}
+            />
+            <CompactStat
+              label="重点关注"
+              value={`${focusedCount}`}
+              icon={Target}
+            />
+            <CompactStat
+              label="学习记录"
+              value={`${totalRecords}`}
+              icon={ClipboardCheck}
+            />
+          </div>
+        </Panel>
+
+        <Panel title="本页可直接完成" subtitle="不用再跳到班级详情才能管理学生">
+          <ActionList
+            items={[
+              {
+                icon: UserPlus,
+                title: "添加或批量导入学生",
+                text: "直接在当前页面补充名单，支持单个添加和批量导入。",
+                onClick: onShowAddStudentModal,
+              },
+              {
+                icon: BookOpen,
+                title: "进入班级工作台",
+                text:
+                  groups.length > 0
+                    ? `当前已建立 ${groups.length} 个小组，班级页里还能继续处理上传和邀请码。`
+                    : "需要处理上传、邀请码或班级级别动作时，可以进入班级工作台。",
+                onClick: ctx.openSelectedClass,
+              },
+              {
+                icon: BarChart3,
+                title: "查看班级学情",
+                text: "学生名单、关注对象和成绩趋势现在可以联动查看。",
+                onClick: ctx.openDataAnalysis,
+              },
+            ]}
+          />
+        </Panel>
+      </div>
+    </section>
   );
 }
 
@@ -828,19 +1072,7 @@ function ClassManagement({
         />
       </section>
 
-      <Panel
-        title="班级列表"
-        subtitle="点击进入班级详情"
-        action={
-          <ModuleButton
-            icon={Plus}
-            tone="primary"
-            onClick={ctx.openCreateClass}
-          >
-            创建班级
-          </ModuleButton>
-        }
-      >
+      <Panel title="班级列表" subtitle="点击进入班级详情">
         {ctx.classes.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {ctx.classes.map((cls) => (
@@ -908,14 +1140,14 @@ function ReportCenter({
             {
               icon: PieChart,
               title: "查看学情分析",
-              text: "打开完整数据分析面板。",
+              text: "进入完整学情分析页面。",
               onClick: ctx.openDataAnalysis,
             },
             {
               icon: Users,
-              title: "进入学生画像",
-              text: "从排行或学生列表查看个人表现。",
-              onClick: ctx.openSelectedClass,
+              title: "查看学生管理",
+              text: "从学生页直接查看画像、分组和关注状态。",
+              onClick: ctx.openStudentsDashboard,
             },
           ]}
         />

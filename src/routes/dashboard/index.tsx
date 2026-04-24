@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Award,
+  BarChart3,
   BookOpen,
   Brain,
   CheckCircle2,
@@ -47,8 +48,8 @@ function DashboardOverview() {
           <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
             智能出题
           </ModuleButton>
-          <ModuleButton icon={Upload} onClick={ctx.openUploadForSelectedClass}>
-            上传作业
+          <ModuleButton icon={BarChart3} onClick={ctx.openDataAnalysis}>
+            学情分析
           </ModuleButton>
         </>
       )}

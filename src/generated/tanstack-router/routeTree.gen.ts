@@ -18,8 +18,10 @@ import { Route as AuthIndexImport } from './../../routes/auth/index'
 import { Route as DashboardStudentsImport } from './../../routes/dashboard/students'
 import { Route as DashboardSettingsImport } from './../../routes/dashboard/settings'
 import { Route as DashboardReportsImport } from './../../routes/dashboard/reports'
+import { Route as DashboardQuestionGeneratorImport } from './../../routes/dashboard/question-generator'
 import { Route as DashboardMistakesImport } from './../../routes/dashboard/mistakes'
 import { Route as DashboardMessagesImport } from './../../routes/dashboard/messages'
+import { Route as DashboardMaterialsImport } from './../../routes/dashboard/materials'
 import { Route as DashboardLearningAnalysisImport } from './../../routes/dashboard/learning-analysis'
 import { Route as DashboardKnowledgeMapImport } from './../../routes/dashboard/knowledge-map'
 import { Route as DashboardGradesImport } from './../../routes/dashboard/grades'
@@ -97,6 +99,14 @@ const DashboardReportsRoute = DashboardReportsImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const DashboardQuestionGeneratorRoute = DashboardQuestionGeneratorImport.update(
+  {
+    id: '/dashboard/question-generator',
+    path: '/dashboard/question-generator',
+    getParentRoute: () => rootRoute,
+  } as any,
+)
+
 const DashboardMistakesRoute = DashboardMistakesImport.update({
   id: '/dashboard/mistakes',
   path: '/dashboard/mistakes',
@@ -106,6 +116,12 @@ const DashboardMistakesRoute = DashboardMistakesImport.update({
 const DashboardMessagesRoute = DashboardMessagesImport.update({
   id: '/dashboard/messages',
   path: '/dashboard/messages',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardMaterialsRoute = DashboardMaterialsImport.update({
+  id: '/dashboard/materials',
+  path: '/dashboard/materials',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -246,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardLearningAnalysisImport
       parentRoute: typeof rootRoute
     }
+    '/dashboard/materials': {
+      id: '/dashboard/materials'
+      path: '/dashboard/materials'
+      fullPath: '/dashboard/materials'
+      preLoaderRoute: typeof DashboardMaterialsImport
+      parentRoute: typeof rootRoute
+    }
     '/dashboard/messages': {
       id: '/dashboard/messages'
       path: '/dashboard/messages'
@@ -258,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard/mistakes'
       fullPath: '/dashboard/mistakes'
       preLoaderRoute: typeof DashboardMistakesImport
+      parentRoute: typeof rootRoute
+    }
+    '/dashboard/question-generator': {
+      id: '/dashboard/question-generator'
+      path: '/dashboard/question-generator'
+      fullPath: '/dashboard/question-generator'
+      preLoaderRoute: typeof DashboardQuestionGeneratorImport
       parentRoute: typeof rootRoute
     }
     '/dashboard/reports': {
@@ -327,8 +357,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/grades': typeof DashboardGradesRoute
   '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
   '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/materials': typeof DashboardMaterialsRoute
   '/dashboard/messages': typeof DashboardMessagesRoute
   '/dashboard/mistakes': typeof DashboardMistakesRoute
+  '/dashboard/question-generator': typeof DashboardQuestionGeneratorRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/students': typeof DashboardStudentsRoute
@@ -351,8 +383,10 @@ export interface FileRoutesByTo {
   '/dashboard/grades': typeof DashboardGradesRoute
   '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
   '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/materials': typeof DashboardMaterialsRoute
   '/dashboard/messages': typeof DashboardMessagesRoute
   '/dashboard/mistakes': typeof DashboardMistakesRoute
+  '/dashboard/question-generator': typeof DashboardQuestionGeneratorRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/students': typeof DashboardStudentsRoute
@@ -376,8 +410,10 @@ export interface FileRoutesById {
   '/dashboard/grades': typeof DashboardGradesRoute
   '/dashboard/knowledge-map': typeof DashboardKnowledgeMapRoute
   '/dashboard/learning-analysis': typeof DashboardLearningAnalysisRoute
+  '/dashboard/materials': typeof DashboardMaterialsRoute
   '/dashboard/messages': typeof DashboardMessagesRoute
   '/dashboard/mistakes': typeof DashboardMistakesRoute
+  '/dashboard/question-generator': typeof DashboardQuestionGeneratorRoute
   '/dashboard/reports': typeof DashboardReportsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/students': typeof DashboardStudentsRoute
@@ -402,8 +438,10 @@ export interface FileRouteTypes {
     | '/dashboard/grades'
     | '/dashboard/knowledge-map'
     | '/dashboard/learning-analysis'
+    | '/dashboard/materials'
     | '/dashboard/messages'
     | '/dashboard/mistakes'
+    | '/dashboard/question-generator'
     | '/dashboard/reports'
     | '/dashboard/settings'
     | '/dashboard/students'
@@ -425,8 +463,10 @@ export interface FileRouteTypes {
     | '/dashboard/grades'
     | '/dashboard/knowledge-map'
     | '/dashboard/learning-analysis'
+    | '/dashboard/materials'
     | '/dashboard/messages'
     | '/dashboard/mistakes'
+    | '/dashboard/question-generator'
     | '/dashboard/reports'
     | '/dashboard/settings'
     | '/dashboard/students'
@@ -448,8 +488,10 @@ export interface FileRouteTypes {
     | '/dashboard/grades'
     | '/dashboard/knowledge-map'
     | '/dashboard/learning-analysis'
+    | '/dashboard/materials'
     | '/dashboard/messages'
     | '/dashboard/mistakes'
+    | '/dashboard/question-generator'
     | '/dashboard/reports'
     | '/dashboard/settings'
     | '/dashboard/students'
@@ -473,8 +515,10 @@ export interface RootRouteChildren {
   DashboardGradesRoute: typeof DashboardGradesRoute
   DashboardKnowledgeMapRoute: typeof DashboardKnowledgeMapRoute
   DashboardLearningAnalysisRoute: typeof DashboardLearningAnalysisRoute
+  DashboardMaterialsRoute: typeof DashboardMaterialsRoute
   DashboardMessagesRoute: typeof DashboardMessagesRoute
   DashboardMistakesRoute: typeof DashboardMistakesRoute
+  DashboardQuestionGeneratorRoute: typeof DashboardQuestionGeneratorRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardStudentsRoute: typeof DashboardStudentsRoute
@@ -497,8 +541,10 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardGradesRoute: DashboardGradesRoute,
   DashboardKnowledgeMapRoute: DashboardKnowledgeMapRoute,
   DashboardLearningAnalysisRoute: DashboardLearningAnalysisRoute,
+  DashboardMaterialsRoute: DashboardMaterialsRoute,
   DashboardMessagesRoute: DashboardMessagesRoute,
   DashboardMistakesRoute: DashboardMistakesRoute,
+  DashboardQuestionGeneratorRoute: DashboardQuestionGeneratorRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardStudentsRoute: DashboardStudentsRoute,
@@ -531,8 +577,10 @@ export const routeTree = rootRoute
         "/dashboard/grades",
         "/dashboard/knowledge-map",
         "/dashboard/learning-analysis",
+        "/dashboard/materials",
         "/dashboard/messages",
         "/dashboard/mistakes",
+        "/dashboard/question-generator",
         "/dashboard/reports",
         "/dashboard/settings",
         "/dashboard/students",
@@ -578,11 +626,17 @@ export const routeTree = rootRoute
     "/dashboard/learning-analysis": {
       "filePath": "dashboard/learning-analysis.tsx"
     },
+    "/dashboard/materials": {
+      "filePath": "dashboard/materials.tsx"
+    },
     "/dashboard/messages": {
       "filePath": "dashboard/messages.tsx"
     },
     "/dashboard/mistakes": {
       "filePath": "dashboard/mistakes.tsx"
+    },
+    "/dashboard/question-generator": {
+      "filePath": "dashboard/question-generator.tsx"
     },
     "/dashboard/reports": {
       "filePath": "dashboard/reports.tsx"

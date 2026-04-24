@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { AlertTriangle, Brain, Upload } from "lucide-react";
+import { Brain, Upload, Users } from "lucide-react";
 import { MistakeLibraryPage } from "~/components/dashboard/MistakeLibraryPage";
 import {
   DashboardShell,
@@ -45,8 +45,8 @@ function MistakeLibraryRoute() {
           <ModuleButton icon={Brain} onClick={ctx.openQuestionGenerator}>
             题目生成
           </ModuleButton>
-          <ModuleButton icon={AlertTriangle} onClick={ctx.openSelectedClass}>
-            进入班级
+          <ModuleButton icon={Users} onClick={ctx.openStudentsDashboard}>
+            学生管理
           </ModuleButton>
         </>
       )}
